@@ -1,0 +1,244 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { apiFetch } from "@/lib/api";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
+interface Branding {
+  primaryColor: string;
+  accentColor: string;
+  logoUrl?: string;
+  logoKey?: string;
+  organizationId?: string;
+}
+
+export default function BrandingPage() {
+  const [branding, setBranding] = useState<Branding>({
+    primaryColor: "#2563eb",
+    accentColor: "#f59e0b",
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    apiFetch<Branding>("/branding").then(setBranding).catch(console.error);
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await apiFetch("/branding", {
+        method: "PUT",
+        body: JSON.stringify({
+          primaryColor: branding.primaryColor,
+          accentColor: branding.accentColor,
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+
+      const res = await fetch(`${API_URL}/api/branding/logo`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Upload failed");
+      }
+
+      const updated = await res.json();
+      setBranding((prev) => ({ ...prev, ...updated }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    try {
+      const updated = await apiFetch<Branding>("/branding/logo", {
+        method: "DELETE",
+      });
+      setBranding((prev) => ({ ...prev, ...updated }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const logoSrc = branding.logoKey
+    ? `${API_URL}/api/branding/logo/${branding.organizationId}`
+    : branding.logoUrl || null;
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Branding</h1>
+      <form onSubmit={handleSave} className="max-w-md space-y-6">
+        {saved && (
+          <div className="p-3 text-sm text-green-600 bg-green-50 rounded-lg">
+            Branding saved!
+          </div>
+        )}
+
+        {/* Logo Upload */}
+        <div className="space-y-3">
+          <label className="text-sm font-medium">Company Logo</label>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            PNG, JPEG, SVG, or WebP. Max 2MB. Displayed in the client portal
+            header.
+          </p>
+
+          {logoSrc ? (
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 border border-[var(--border)] rounded-lg flex items-center justify-center overflow-hidden bg-[var(--background)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoSrc}
+                  alt="Current logo"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+              <div className="flex gap-2">
+                <label className="px-3 py-1.5 border border-[var(--border)] rounded-lg text-sm cursor-pointer hover:bg-[var(--muted)]">
+                  {uploading ? "Uploading..." : "Replace"}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
+                    onChange={handleLogoUpload}
+                    disabled={uploading}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleLogoDelete}
+                  className="px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[var(--border)] rounded-lg cursor-pointer hover:bg-[var(--muted)] transition-colors">
+              <div className="text-center">
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {uploading ? "Uploading..." : "Click to upload your logo"}
+                </p>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                className="hidden"
+                accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
+                onChange={handleLogoUpload}
+                disabled={uploading}
+              />
+            </label>
+          )}
+        </div>
+
+        {/* Colors */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Primary Color</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={branding.primaryColor}
+              onChange={(e) =>
+                setBranding({ ...branding, primaryColor: e.target.value })
+              }
+              className="w-10 h-10 rounded cursor-pointer border-0"
+            />
+            <input
+              type="text"
+              value={branding.primaryColor}
+              onChange={(e) =>
+                setBranding({ ...branding, primaryColor: e.target.value })
+              }
+              className="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] font-mono text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Accent Color</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={branding.accentColor}
+              onChange={(e) =>
+                setBranding({ ...branding, accentColor: e.target.value })
+              }
+              className="w-10 h-10 rounded cursor-pointer border-0"
+            />
+            <input
+              type="text"
+              value={branding.accentColor}
+              onChange={(e) =>
+                setBranding({ ...branding, accentColor: e.target.value })
+              }
+              className="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] font-mono text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="p-4 rounded-lg border border-[var(--border)]">
+          <p className="text-sm font-medium mb-3">Preview</p>
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)]">
+            {logoSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoSrc} alt="Logo preview" className="h-8" />
+            ) : (
+              <div className="w-8 h-8 rounded bg-[var(--muted)] flex items-center justify-center text-xs text-[var(--muted-foreground)]">
+                Logo
+              </div>
+            )}
+            <span className="text-sm font-semibold flex-1">Client Portal</span>
+            <div className="flex gap-2">
+              <div
+                className="w-6 h-6 rounded"
+                style={{ backgroundColor: branding.primaryColor }}
+              />
+              <div
+                className="w-6 h-6 rounded"
+                style={{ backgroundColor: branding.accentColor }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-medium"
+        >
+          {saving ? "Saving..." : "Save Branding"}
+        </button>
+      </form>
+    </div>
+  );
+}
