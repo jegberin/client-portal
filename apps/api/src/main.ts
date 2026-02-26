@@ -29,15 +29,47 @@ for (const key of required) {
   }
 }
 
+// Auth secret validation
+const DEFAULT_SECRET = "change-me-in-production";
+const authSecret = process.env.BETTER_AUTH_SECRET!;
+const isProduction = process.env.NODE_ENV === "production";
+
+if (isProduction) {
+  if (authSecret === DEFAULT_SECRET) {
+    console.error(
+      "FATAL: BETTER_AUTH_SECRET is set to the default value. " +
+        "You must change it before running in production.",
+    );
+    process.exit(1);
+  }
+  if (authSecret.length < 32) {
+    console.error(
+      "FATAL: BETTER_AUTH_SECRET must be at least 32 characters in production. " +
+        `Current length: ${authSecret.length}`,
+    );
+    process.exit(1);
+  }
+} else {
+  if (authSecret === DEFAULT_SECRET) {
+    console.warn(
+      "WARNING: BETTER_AUTH_SECRET is set to the default value. " +
+        "Change it before deploying to production.",
+    );
+  }
+}
+
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import { Logger } from "nestjs-pino";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
+
+  app.use(cookieParser());
 
   app.use(
     helmet({

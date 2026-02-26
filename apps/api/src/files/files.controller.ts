@@ -14,7 +14,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Response } from "express";
 import { FilesService, UploadedFile as UploadedFileType } from "./files.service";
-import { AuthGuard, RolesGuard, Roles, CurrentUser, CurrentOrg, PaginationQueryDto } from "../common";
+import { AuthGuard, RolesGuard, Roles, CurrentUser, CurrentOrg, CurrentMember, PaginationQueryDto } from "../common";
 
 @Controller("files")
 @UseGuards(AuthGuard, RolesGuard)
@@ -52,11 +52,15 @@ export class FilesController {
   async download(
     @Param("id") id: string,
     @CurrentOrg("id") orgId: string,
+    @CurrentUser("id") userId: string,
+    @CurrentMember("role") role: string,
     @Res() res: Response,
   ) {
     const { body, contentType, filename } = await this.filesService.download(
       id,
       orgId,
+      userId,
+      role,
     );
     // Sanitize filename for Content-Disposition: strip control chars and quotes
     const safeAscii = filename.replace(/[^\x20-\x7E]/g, "_").replace(/["\\]/g, "_");
@@ -75,8 +79,10 @@ export class FilesController {
   getDownloadUrl(
     @Param("id") id: string,
     @CurrentOrg("id") orgId: string,
+    @CurrentUser("id") userId: string,
+    @CurrentMember("role") role: string,
   ) {
-    return this.filesService.getDownloadUrl(id, orgId);
+    return this.filesService.getDownloadUrl(id, orgId, userId, role);
   }
 
   @Delete(":id")

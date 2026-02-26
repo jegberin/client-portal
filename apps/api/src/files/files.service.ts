@@ -2,6 +2,7 @@ import {
   Injectable,
   Inject,
   NotFoundException,
+  ForbiddenException,
   BadRequestException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -11,6 +12,8 @@ import { STORAGE_PROVIDER } from "./storage/storage.interface";
 import { randomUUID } from "crypto";
 import { extname } from "path";
 import { paginationArgs, paginatedResponse } from "../common";
+
+const PRIVILEGED_ROLES = new Set(["owner", "admin"]);
 
 export interface UploadedFile {
   originalname: string;
@@ -105,23 +108,46 @@ export class FilesService {
     return paginatedResponse(data, total, page, limit);
   }
 
-  async download(id: string, organizationId: string) {
+  async download(id: string, organizationId: string, userId: string, role: string) {
     const file = await this.prisma.file.findFirst({
       where: { id, organizationId },
     });
     if (!file) throw new NotFoundException("File not found");
+
+    await this.assertProjectAccess(file.projectId, userId, role);
 
     const { body, contentType } = await this.storage.download(file.storageKey);
     return { body, contentType, filename: file.filename };
   }
 
-  async getDownloadUrl(id: string, organizationId: string) {
+  async getDownloadUrl(id: string, organizationId: string, userId: string, role: string) {
     const file = await this.prisma.file.findFirst({
       where: { id, organizationId },
     });
     if (!file) throw new NotFoundException("File not found");
 
+    await this.assertProjectAccess(file.projectId, userId, role);
+
     return { url: `/api/files/${id}/download` };
+  }
+
+  /**
+   * Verifies that a user has access to a project's files.
+   * Owners and admins can access all files in the org.
+   * Members (clients) must be explicitly assigned to the project.
+   */
+  private async assertProjectAccess(projectId: string, userId: string, role: string) {
+    if (PRIVILEGED_ROLES.has(role)) {
+      return;
+    }
+
+    const assignment = await this.prisma.projectClient.findFirst({
+      where: { projectId, userId },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenException("You do not have access to this file");
+    }
   }
 
   async remove(id: string, organizationId: string) {

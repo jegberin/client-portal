@@ -1,6 +1,6 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
 import { FilesService } from "./files.service";
-import { NotFoundException, BadRequestException } from "@nestjs/common";
+import { NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
 import { Readable } from "stream";
 
 const mockStorage = {
@@ -29,6 +29,9 @@ const mockPrisma = {
     findFirst: mock(() => Promise.resolve(null)),
     delete: mock(() => Promise.resolve()),
     deleteMany: mock(() => Promise.resolve({ count: 1 })),
+  },
+  projectClient: {
+    findFirst: mock(() => Promise.resolve(null)),
   },
   $transaction: mock((fn: any) => fn(mockPrisma)),
 };
@@ -84,11 +87,108 @@ describe("FilesService", () => {
     mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(null));
 
     try {
-      await service.download("nonexistent", "org-1");
+      await service.download("nonexistent", "org-1", "user-1", "owner");
       expect(true).toBe(false);
     } catch (e) {
       expect(e).toBeInstanceOf(NotFoundException);
     }
+  });
+
+  it("download allows owner to access any file", async () => {
+    const file = {
+      id: "file-1",
+      filename: "doc.pdf",
+      storageKey: "org/proj/doc.pdf",
+      projectId: "proj-1",
+      organizationId: "org-1",
+    };
+    mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(file));
+
+    const result = await service.download("file-1", "org-1", "user-1", "owner");
+    expect(result.filename).toBe("doc.pdf");
+  });
+
+  it("download allows admin to access any file", async () => {
+    const file = {
+      id: "file-1",
+      filename: "doc.pdf",
+      storageKey: "org/proj/doc.pdf",
+      projectId: "proj-1",
+      organizationId: "org-1",
+    };
+    mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(file));
+
+    const result = await service.download("file-1", "org-1", "user-1", "admin");
+    expect(result.filename).toBe("doc.pdf");
+  });
+
+  it("download allows member assigned to project", async () => {
+    const file = {
+      id: "file-1",
+      filename: "doc.pdf",
+      storageKey: "org/proj/doc.pdf",
+      projectId: "proj-1",
+      organizationId: "org-1",
+    };
+    mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(file));
+    mockPrisma.projectClient.findFirst.mockReturnValue(
+      Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-1" }),
+    );
+
+    const result = await service.download("file-1", "org-1", "user-1", "member");
+    expect(result.filename).toBe("doc.pdf");
+  });
+
+  it("download rejects member not assigned to project", async () => {
+    const file = {
+      id: "file-1",
+      filename: "doc.pdf",
+      storageKey: "org/proj/doc.pdf",
+      projectId: "proj-1",
+      organizationId: "org-1",
+    };
+    mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(file));
+    mockPrisma.projectClient.findFirst.mockReturnValue(Promise.resolve(null));
+
+    try {
+      await service.download("file-1", "org-1", "user-1", "member");
+      expect(true).toBe(false);
+    } catch (e) {
+      expect(e).toBeInstanceOf(ForbiddenException);
+    }
+  });
+
+  it("getDownloadUrl rejects member not assigned to project", async () => {
+    const file = {
+      id: "file-1",
+      filename: "doc.pdf",
+      storageKey: "org/proj/doc.pdf",
+      projectId: "proj-1",
+      organizationId: "org-1",
+    };
+    mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(file));
+    mockPrisma.projectClient.findFirst.mockReturnValue(Promise.resolve(null));
+
+    try {
+      await service.getDownloadUrl("file-1", "org-1", "user-1", "member");
+      expect(true).toBe(false);
+    } catch (e) {
+      expect(e).toBeInstanceOf(ForbiddenException);
+    }
+  });
+
+  it("getDownloadUrl allows admin to access any file", async () => {
+    const file = {
+      id: "file-1",
+      filename: "doc.pdf",
+      storageKey: "org/proj/doc.pdf",
+      projectId: "proj-1",
+      organizationId: "org-1",
+    };
+    mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(file));
+
+    const result = await service.getDownloadUrl("file-1", "org-1", "user-1", "admin");
+    expect(result.url).toBe("/api/files/file-1/download");
   });
 
   it("remove deletes from storage and db", async () => {
