@@ -6,6 +6,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { StorageProvider } from "../files/storage/storage.interface";
 import { STORAGE_PROVIDER } from "../files/storage/storage.interface";
 import type { UploadedFile } from "../files/files.service";
@@ -31,6 +32,7 @@ function sanitizeFilename(filename: string): string {
 export class UpdatesService {
   constructor(
     private prisma: PrismaService,
+    private notifications: NotificationsService,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {}
 
@@ -66,7 +68,7 @@ export class UpdatesService {
       await this.storage.upload(imageKey, image.buffer, image.mimetype);
     }
 
-    return this.prisma.projectUpdate.create({
+    const update = await this.prisma.projectUpdate.create({
       data: {
         content: dto.content,
         imageKey,
@@ -76,6 +78,10 @@ export class UpdatesService {
         authorId,
       },
     });
+
+    this.notifications.notifyProjectUpdate(projectId, dto.content);
+
+    return update;
   }
 
   async findByProject(

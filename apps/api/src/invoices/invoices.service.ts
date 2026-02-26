@@ -4,12 +4,16 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { paginationArgs, paginatedResponse } from "../common";
 import { CreateInvoiceDto, UpdateInvoiceDto, InvoiceListQueryDto } from "./invoices.dto";
 
 @Injectable()
 export class InvoicesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(dto: CreateInvoiceDto, orgId: string) {
     return this.prisma.$transaction(async (tx) => {
@@ -137,6 +141,9 @@ export class InvoicesService {
     });
     if (!invoice) throw new NotFoundException("Invoice not found");
 
+    const isTransitionToSent =
+      dto.status === "sent" && invoice.status !== "sent";
+
     const dueDateValue =
       dto.dueDate === null
         ? null
@@ -144,8 +151,10 @@ export class InvoicesService {
           ? new Date(dto.dueDate)
           : undefined;
 
+    let updated;
+
     if (dto.lineItems) {
-      return this.prisma.$transaction(async (tx) => {
+      updated = await this.prisma.$transaction(async (tx) => {
         await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
         return tx.invoice.update({
           where: { id },
@@ -164,17 +173,23 @@ export class InvoicesService {
           include: { lineItems: true },
         });
       });
+    } else {
+      updated = await this.prisma.invoice.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          dueDate: dueDateValue,
+          notes: dto.notes,
+        },
+        include: { lineItems: true },
+      });
     }
 
-    return this.prisma.invoice.update({
-      where: { id },
-      data: {
-        status: dto.status,
-        dueDate: dueDateValue,
-        notes: dto.notes,
-      },
-      include: { lineItems: true },
-    });
+    if (isTransitionToSent) {
+      this.notifications.notifyInvoiceSent(id);
+    }
+
+    return updated;
   }
 
   async remove(id: string, orgId: string) {
