@@ -109,6 +109,9 @@ export class AuthService {
           accentColor: DEFAULT_BRANDING.accentColor,
         },
       });
+      await tx.systemSettings.create({
+        data: { organizationId },
+      });
     });
   }
 

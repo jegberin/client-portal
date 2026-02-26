@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 import type { StorageProvider } from "./storage/storage.interface";
 import { STORAGE_PROVIDER } from "./storage/storage.interface";
 import { randomUUID } from "crypto";
@@ -36,15 +37,16 @@ function sanitizeFilename(filename: string): string {
 
 @Injectable()
 export class FilesService {
-  private maxFileSize: number;
+  private defaultMaxFileSize: number;
 
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
+    private settingsService: SettingsService,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {
     const maxMb = parseInt(this.config.get("MAX_FILE_SIZE_MB", "50"), 10);
-    this.maxFileSize = maxMb * 1024 * 1024;
+    this.defaultMaxFileSize = maxMb * 1024 * 1024;
   }
 
   async upload(
@@ -53,9 +55,13 @@ export class FilesService {
     organizationId: string,
     uploadedById: string,
   ) {
-    if (file.size > this.maxFileSize) {
+    // Use org-specific max file size from DB settings, with env-var/default fallback
+    const maxFileSizeMb = await this.settingsService.getEffectiveMaxFileSize(organizationId);
+    const maxFileSize = maxFileSizeMb * 1024 * 1024;
+
+    if (file.size > maxFileSize) {
       throw new BadRequestException(
-        `File size exceeds maximum of ${this.maxFileSize / 1024 / 1024}MB`,
+        `File size exceeds maximum of ${maxFileSizeMb}MB`,
       );
     }
 

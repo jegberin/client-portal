@@ -9,6 +9,7 @@ import {
   Receipt,
   Palette,
   UserCog,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -17,6 +18,7 @@ const navItems = [
   { href: "/dashboard/invoices", label: "Invoices", icon: Receipt },
   { href: "/dashboard/clients", label: "Clients", icon: Users },
   { href: "/dashboard/settings/branding", label: "Branding", icon: Palette },
+  { href: "/dashboard/settings/system", label: "System", icon: Settings },
   { href: "/dashboard/settings/account", label: "Account", icon: UserCog },
 ];
 

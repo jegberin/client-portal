@@ -15,6 +15,7 @@ import { UpdatesModule } from "./updates/updates.module";
 import { NotesModule } from "./notes/notes.module";
 import { TasksModule } from "./tasks/tasks.module";
 import { InvoicesModule } from "./invoices/invoices.module";
+import { SettingsModule } from "./settings/settings.module";
 import { HealthController } from "./health.controller";
 import { SessionMiddleware } from "./auth/session.middleware";
 import { AllExceptionsFilter } from "./common";
@@ -57,6 +58,7 @@ import { CsrfGuard } from "./common/guards/csrf.guard";
     NotesModule,
     TasksModule,
     InvoicesModule,
+    SettingsModule,
   ],
   controllers: [HealthController],
   providers: [
