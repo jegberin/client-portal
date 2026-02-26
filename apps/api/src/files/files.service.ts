@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  PayloadTooLargeException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
@@ -12,7 +13,7 @@ import type { StorageProvider } from "./storage/storage.interface";
 import { STORAGE_PROVIDER } from "./storage/storage.interface";
 import { randomUUID } from "crypto";
 import { extname } from "path";
-import { paginationArgs, paginatedResponse } from "../common";
+import { paginationArgs, paginatedResponse, sanitizeFilename } from "../common";
 
 const PRIVILEGED_ROLES = new Set(["owner", "admin"]);
 
@@ -27,13 +28,6 @@ const BLOCKED_EXTENSIONS = new Set([
   ".exe", ".sh", ".bat", ".cmd", ".com", ".msi", ".ps1",
   ".scr", ".pif", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh",
 ]);
-
-function sanitizeFilename(filename: string): string {
-  // Strip path traversal and directory separators
-  const base = filename.replace(/^.*[/\\]/, "");
-  // Remove non-ASCII and control characters, keep alphanumeric, dot, dash, underscore, space
-  return base.replace(/[^\w.\- ]/g, "_").replace(/\.{2,}/g, ".") || "file";
-}
 
 @Injectable()
 export class FilesService {
@@ -55,13 +49,13 @@ export class FilesService {
     organizationId: string,
     uploadedById: string,
   ) {
-    // Use org-specific max file size from DB settings, with env-var/default fallback
+    // Early size check: validate against org-specific limit before any processing
     const maxFileSizeMb = await this.settingsService.getEffectiveMaxFileSize(organizationId);
     const maxFileSize = maxFileSizeMb * 1024 * 1024;
 
     if (file.size > maxFileSize) {
-      throw new BadRequestException(
-        `File size exceeds maximum of ${maxFileSizeMb}MB`,
+      throw new PayloadTooLargeException(
+        `File size (${Math.round(file.size / 1024 / 1024)}MB) exceeds the maximum allowed size of ${maxFileSizeMb}MB`,
       );
     }
 

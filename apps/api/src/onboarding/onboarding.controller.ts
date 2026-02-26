@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { ConfigService } from "@nestjs/config";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import { Response } from "express";
 import { render } from "@react-email/render";
 import { WelcomeEmail } from "@atrium/email";
@@ -20,6 +21,8 @@ export class OnboardingController {
     private authService: AuthService,
     private config: ConfigService,
     private mail: MailService,
+    @InjectPinoLogger(OnboardingController.name)
+    private readonly logger: PinoLogger,
   ) {}
 
   @Post("signup")
@@ -153,8 +156,11 @@ export class OnboardingController {
           html,
         ),
       )
-      .catch(() => {
-        // Silently ignore — welcome email is non-critical
+      .catch((err) => {
+        this.logger.warn(
+          { err, email: body.email },
+          "Failed to send welcome email",
+        );
       });
 
     return { success: true };

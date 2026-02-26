@@ -2,12 +2,22 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import { Resend } from "resend";
+import * as nodemailer from "nodemailer";
 import { SettingsService } from "../settings/settings.service";
+
+interface SmtpConfig {
+  host: string | null;
+  port: number;
+  user: string | null;
+  pass: string | null;
+  secure: boolean;
+}
 
 @Injectable()
 export class MailService {
   private resend: Resend | null;
   private from: string;
+  private smtpTransporters = new Map<string, nodemailer.Transporter>();
 
   constructor(
     private config: ConfigService,
@@ -18,6 +28,25 @@ export class MailService {
     const apiKey = this.config.get("RESEND_API_KEY");
     this.resend = apiKey ? new Resend(apiKey) : null;
     this.from = this.config.get("EMAIL_FROM", "noreply@atrium.local");
+  }
+
+  private getSmtpTransporter(smtp: SmtpConfig): nodemailer.Transporter {
+    const key = `${smtp.host}:${smtp.port}:${smtp.user}`;
+    if (!this.smtpTransporters.has(key)) {
+      this.smtpTransporters.set(
+        key,
+        nodemailer.createTransport({
+          host: smtp.host ?? undefined,
+          port: smtp.port,
+          secure: smtp.secure,
+          auth:
+            smtp.user && smtp.pass
+              ? { user: smtp.user, pass: smtp.pass }
+              : undefined,
+        }),
+      );
+    }
+    return this.smtpTransporters.get(key)!;
   }
 
   async send(to: string, subject: string, html: string, organizationId?: string) {
@@ -39,19 +68,7 @@ export class MailService {
         }
 
         if (emailConfig.provider === "smtp" && emailConfig.smtp) {
-          const nodemailer = await import("nodemailer");
-          const transporter = nodemailer.createTransport({
-            host: emailConfig.smtp.host ?? undefined,
-            port: emailConfig.smtp.port,
-            secure: emailConfig.smtp.secure,
-            auth:
-              emailConfig.smtp.user && emailConfig.smtp.pass
-                ? {
-                    user: emailConfig.smtp.user,
-                    pass: emailConfig.smtp.pass,
-                  }
-                : undefined,
-          });
+          const transporter = this.getSmtpTransporter(emailConfig.smtp);
           await transporter.sendMail({
             from: emailConfig.from,
             to,

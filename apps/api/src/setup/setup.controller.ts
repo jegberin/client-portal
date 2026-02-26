@@ -14,14 +14,14 @@ import {
   Roles,
   CurrentOrg,
 } from "../common";
-import { MailService } from "../mail/mail.service";
+import { SettingsService } from "../settings/settings.service";
 
 @Controller("setup")
 @UseGuards(AuthGuard, RolesGuard)
 export class SetupController {
   constructor(
     private setupService: SetupService,
-    private mailService: MailService,
+    private settingsService: SettingsService,
   ) {}
 
   @Get("status")
@@ -38,34 +38,32 @@ export class SetupController {
 
   @Put("email")
   @Roles("owner")
-  updateEmailSettings(
-    @CurrentOrg("id") _orgId: string,
-    @Body() _dto: UpdateEmailSettingsDto,
+  async updateEmailSettings(
+    @CurrentOrg("id") orgId: string,
+    @Body() dto: UpdateEmailSettingsDto,
   ) {
-    // Email configuration is handled via environment variables in this version.
-    // This endpoint validates the input and acknowledges the configuration.
-    // In a future version, this could persist per-org email settings.
-    return { success: true, message: "Email settings acknowledged" };
+    const provider = dto.provider === "none" ? null : dto.provider;
+
+    await this.settingsService.updateSettings(orgId, {
+      emailProvider: provider,
+      emailFrom: dto.fromEmail ?? undefined,
+      resendApiKey: dto.resendApiKey ?? undefined,
+      smtpHost: dto.smtpHost ?? undefined,
+      smtpPort: dto.smtpPort ?? undefined,
+      smtpUser: dto.smtpUser ?? undefined,
+      smtpPass: dto.smtpPass ?? undefined,
+      smtpSecure: dto.smtpSecure ?? undefined,
+    });
+
+    return { success: true, message: "Email settings saved" };
   }
 
   @Post("test-email")
   @Roles("owner")
   async sendTestEmail(
-    @CurrentOrg("id") _orgId: string,
+    @CurrentOrg("id") orgId: string,
     @Body() dto: TestEmailDto,
   ) {
-    try {
-      await this.mailService.send(
-        dto.to,
-        "Atrium Test Email",
-        "<h1>It works!</h1><p>Your email configuration is working correctly.</p>",
-      );
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        message: err instanceof Error ? err.message : "Failed to send test email",
-      };
-    }
+    return this.settingsService.testEmailConfig(orgId, dto.to);
   }
 }

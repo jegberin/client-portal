@@ -12,7 +12,7 @@ import { STORAGE_PROVIDER } from "../files/storage/storage.interface";
 import type { UploadedFile } from "../files/files.service";
 import { randomUUID } from "crypto";
 import type { Response } from "express";
-import { paginationArgs, paginatedResponse } from "../common";
+import { paginationArgs, paginatedResponse, sanitizeFilename } from "../common";
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -22,11 +22,6 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-
-function sanitizeFilename(filename: string): string {
-  const base = filename.replace(/^.*[/\\]/, "");
-  return base.replace(/[^\w.\- ]/g, "_").replace(/\.{2,}/g, ".") || "file";
-}
 
 @Injectable()
 export class UpdatesService {

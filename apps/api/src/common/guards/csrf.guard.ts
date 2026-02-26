@@ -13,6 +13,12 @@ const CSRF_COOKIE = "csrf-token";
 const CSRF_HEADER = "x-csrf-token";
 const TOKEN_LENGTH = 32;
 
+/** Cookie names used by Better Auth for session tracking. */
+const SESSION_COOKIE_NAMES = [
+  "better-auth.session_token",
+  "__Secure-better-auth.session_token",
+];
+
 @Injectable()
 export class CsrfGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -21,7 +27,9 @@ export class CsrfGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
 
-    // Always set/refresh the CSRF cookie so the frontend can read it
+    // Only set the CSRF cookie when one does not already exist.
+    // Re-generating on every request would invalidate in-flight requests
+    // that already read the previous token value.
     if (!request.cookies?.[CSRF_COOKIE]) {
       const token = randomBytes(TOKEN_LENGTH).toString("hex");
       response.cookie(CSRF_COOKIE, token, {
@@ -52,6 +60,16 @@ export class CsrfGuard implements CanActivate {
       context.getClass(),
     ]);
     if (isPublic) {
+      return true;
+    }
+
+    // Skip CSRF when no auth session cookie exists. If the user has no
+    // session there is nothing for a CSRF attack to exploit, and requiring
+    // a CSRF token would break unauthenticated POST endpoints like signup.
+    const hasSession = SESSION_COOKIE_NAMES.some(
+      (name) => !!request.cookies?.[name],
+    );
+    if (!hasSession) {
       return true;
     }
 

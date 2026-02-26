@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import { PrismaService } from "../prisma/prisma.service";
 import { UpdateSettingsDto } from "./settings.dto";
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypto";
+import { createCipheriv, createDecipheriv, randomBytes, hkdfSync } from "crypto";
 
 const ENCRYPTION_ALGORITHM = "aes-256-gcm";
 
@@ -17,7 +17,11 @@ export class SettingsService {
     @InjectPinoLogger(SettingsService.name) private readonly logger: PinoLogger,
   ) {
     const secret = this.config.getOrThrow<string>("BETTER_AUTH_SECRET");
-    this.encryptionKey = scryptSync(secret, "atrium-settings-salt", 32);
+    // Derive a dedicated encryption key using HKDF so the auth signing
+    // secret is never reused directly as AES key material.
+    this.encryptionKey = Buffer.from(
+      hkdfSync("sha256", secret, "atrium-settings-encryption", "aes-256-gcm-key", 32),
+    );
   }
 
   private encrypt(plaintext: string): string {

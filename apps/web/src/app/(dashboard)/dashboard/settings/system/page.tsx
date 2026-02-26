@@ -42,9 +42,16 @@ export default function SystemSettingsPage() {
   const [editedApiKey, setEditedApiKey] = useState(false);
   const [editedSmtpPass, setEditedSmtpPass] = useState(false);
 
+  // Boolean flags tracking whether a secret is already stored server-side.
+  // Set once on load from the API response (truthy masked value = key exists).
+  const [hasResendApiKey, setHasResendApiKey] = useState(false);
+  const [hasSmtpPass, setHasSmtpPass] = useState(false);
+
   useEffect(() => {
     apiFetch<SystemSettings>("/settings")
       .then((data) => {
+        setHasResendApiKey(!!data.resendApiKey);
+        setHasSmtpPass(!!data.smtpPass);
         setSettings(data);
         setLoading(false);
       })
@@ -82,6 +89,8 @@ export default function SystemSettingsPage() {
         body: JSON.stringify(payload),
       });
       setSettings(updated);
+      setHasResendApiKey(!!updated.resendApiKey);
+      setHasSmtpPass(!!updated.smtpPass);
       setEditedApiKey(false);
       setEditedSmtpPass(false);
       success("Settings saved");
@@ -170,7 +179,7 @@ export default function SystemSettingsPage() {
               <label className="text-sm font-medium">Resend API Key</label>
               <input
                 type="password"
-                placeholder={settings.resendApiKey === "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" ? "Enter new key to replace" : "re_xxxxxxxx"}
+                placeholder={hasResendApiKey ? "Enter new key to replace" : "re_xxxxxxxx"}
                 value={editedApiKey ? (settings.resendApiKey ?? "") : ""}
                 onChange={(e) => {
                   setEditedApiKey(true);
@@ -178,7 +187,7 @@ export default function SystemSettingsPage() {
                 }}
                 className="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]"
               />
-              {!editedApiKey && settings.resendApiKey && (
+              {!editedApiKey && hasResendApiKey && (
                 <p className="text-xs text-[var(--muted-foreground)]">
                   An API key is already configured. Enter a new value to replace it.
                 </p>
@@ -250,7 +259,7 @@ export default function SystemSettingsPage() {
                 <label className="text-sm font-medium">Password</label>
                 <input
                   type="password"
-                  placeholder={settings.smtpPass === "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" ? "Enter new password to replace" : "SMTP password"}
+                  placeholder={hasSmtpPass ? "Enter new password to replace" : "SMTP password"}
                   value={editedSmtpPass ? (settings.smtpPass ?? "") : ""}
                   onChange={(e) => {
                     setEditedSmtpPass(true);
@@ -258,7 +267,7 @@ export default function SystemSettingsPage() {
                   }}
                   className="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]"
                 />
-                {!editedSmtpPass && settings.smtpPass && (
+                {!editedSmtpPass && hasSmtpPass && (
                   <p className="text-xs text-[var(--muted-foreground)]">
                     A password is already configured. Enter a new value to replace it.
                   </p>

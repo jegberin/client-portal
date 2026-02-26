@@ -9,3 +9,4 @@ export { CsrfGuard } from "./guards/csrf.guard";
 export { AllExceptionsFilter } from "./filters/http-exception.filter";
 export { PaginationQueryDto } from "./dto/pagination.dto";
 export { paginationArgs, paginatedResponse } from "./helpers/paginate";
+export { sanitizeFilename } from "./utils/sanitize";

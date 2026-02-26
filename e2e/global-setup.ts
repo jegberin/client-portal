@@ -1,5 +1,18 @@
 import { chromium } from "@playwright/test";
 
+/**
+ * Global setup creates a unique test account for each test run using a
+ * timestamped email (e2e-<timestamp>@test.local). These accounts are
+ * intentionally not cleaned up after the run because:
+ *
+ *  1. Each run uses a unique email, so stale accounts don't cause conflicts.
+ *  2. Cleanup would require direct database access or an admin API endpoint
+ *     that doesn't exist yet.
+ *
+ * In CI environments the test database should be reset between runs
+ * (e.g. drop/recreate the DB or use a fresh container) to prevent
+ * accumulation of orphaned test data.
+ */
 async function globalSetup() {
   const browser = await chromium.launch();
   const context = await browser.newContext();

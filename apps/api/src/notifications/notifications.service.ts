@@ -82,28 +82,30 @@ export class NotificationsService {
 
     const portalUrl = `${this.webUrl}/portal/projects/${projectId}`;
 
-    for (const client of clients) {
-      try {
-        const html = await render(
-          ProjectUpdateEmail({
-            clientName: client.name,
-            projectName: project.name,
-            updateContent,
-            portalUrl,
-          }),
-        );
-        await this.mail.send(
-          client.email,
-          `New update on ${project.name}`,
-          html,
-        );
-      } catch (err) {
-        this.logger.error(
-          { err, email: client.email, projectId },
-          "Failed to send project update email to client",
-        );
-      }
-    }
+    await Promise.allSettled(
+      clients.map(async (client) => {
+        try {
+          const html = await render(
+            ProjectUpdateEmail({
+              clientName: client.name,
+              projectName: project.name,
+              updateContent,
+              portalUrl,
+            }),
+          );
+          await this.mail.send(
+            client.email,
+            `New update on ${project.name}`,
+            html,
+          );
+        } catch (err) {
+          this.logger.warn(
+            { err, email: client.email, projectId },
+            "Failed to send project update email to client",
+          );
+        }
+      }),
+    );
   }
 
   private async sendTaskCreatedEmails(
@@ -129,29 +131,31 @@ export class NotificationsService {
         })
       : undefined;
 
-    for (const client of clients) {
-      try {
-        const html = await render(
-          TaskAssignedEmail({
-            clientName: client.name,
-            projectName: project.name,
-            taskTitle,
-            dueDate: formattedDueDate,
-            portalUrl,
-          }),
-        );
-        await this.mail.send(
-          client.email,
-          `New task on ${project.name}: ${taskTitle}`,
-          html,
-        );
-      } catch (err) {
-        this.logger.error(
-          { err, email: client.email, projectId },
-          "Failed to send task created email to client",
-        );
-      }
-    }
+    await Promise.allSettled(
+      clients.map(async (client) => {
+        try {
+          const html = await render(
+            TaskAssignedEmail({
+              clientName: client.name,
+              projectName: project.name,
+              taskTitle,
+              dueDate: formattedDueDate,
+              portalUrl,
+            }),
+          );
+          await this.mail.send(
+            client.email,
+            `New task on ${project.name}: ${taskTitle}`,
+            html,
+          );
+        } catch (err) {
+          this.logger.warn(
+            { err, email: client.email, projectId },
+            "Failed to send task created email to client",
+          );
+        }
+      }),
+    );
   }
 
   private async sendInvoiceSentEmails(invoiceId: string): Promise<void> {
@@ -181,29 +185,31 @@ export class NotificationsService {
       : "upon receipt";
     const portalUrl = `${this.webUrl}/portal/invoices`;
 
-    for (const client of clients) {
-      try {
-        const html = await render(
-          InvoiceSentEmail({
-            clientName: client.name,
-            invoiceNumber: invoice.invoiceNumber,
-            amount,
-            dueDate,
-            portalUrl,
-          }),
-        );
-        await this.mail.send(
-          client.email,
-          `Invoice ${invoice.invoiceNumber} — ${amount}`,
-          html,
-        );
-      } catch (err) {
-        this.logger.error(
-          { err, email: client.email, invoiceId },
-          "Failed to send invoice email to client",
-        );
-      }
-    }
+    await Promise.allSettled(
+      clients.map(async (client) => {
+        try {
+          const html = await render(
+            InvoiceSentEmail({
+              clientName: client.name,
+              invoiceNumber: invoice.invoiceNumber,
+              amount,
+              dueDate,
+              portalUrl,
+            }),
+          );
+          await this.mail.send(
+            client.email,
+            `Invoice ${invoice.invoiceNumber} — ${amount}`,
+            html,
+          );
+        } catch (err) {
+          this.logger.warn(
+            { err, email: client.email, invoiceId },
+            "Failed to send invoice email to client",
+          );
+        }
+      }),
+    );
   }
 
   /**

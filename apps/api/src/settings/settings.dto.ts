@@ -7,6 +7,7 @@ import {
   IsIn,
   Min,
   Max,
+  ValidateIf,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 
@@ -20,6 +21,7 @@ export class UpdateSettingsDto {
 
   @IsOptional()
   @Transform(({ value }) => (value === "" ? null : value))
+  @ValidateIf((_obj, value) => value !== null)
   @IsEmail({}, { message: "emailFrom must be a valid email address" })
   emailFrom?: string | null;
 

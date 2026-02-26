@@ -15,40 +15,47 @@ export class InvoicesService {
     private notifications: NotificationsService,
   ) {}
 
-  async create(dto: CreateInvoiceDto, orgId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const lastInvoice = await tx.invoice.findFirst({
-        where: { organizationId: orgId },
-        orderBy: { invoiceNumber: "desc" },
-        select: { invoiceNumber: true },
-      });
+  async create(dto: CreateInvoiceDto, orgId: string, retries = 0) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const lastInvoice = await tx.invoice.findFirst({
+          where: { organizationId: orgId },
+          orderBy: { invoiceNumber: "desc" },
+          select: { invoiceNumber: true },
+        });
 
-      let nextNumber = 1;
-      if (lastInvoice) {
-        const match = lastInvoice.invoiceNumber.match(/INV-(\d+)/);
-        if (match) nextNumber = parseInt(match[1], 10) + 1;
-      }
-      const invoiceNumber = `INV-${String(nextNumber).padStart(3, "0")}`;
+        let nextNumber = 1;
+        if (lastInvoice) {
+          const match = lastInvoice.invoiceNumber.match(/INV-(\d+)/);
+          if (match) nextNumber = parseInt(match[1], 10) + 1;
+        }
+        const invoiceNumber = `INV-${String(nextNumber).padStart(4, "0")}`;
 
-      return tx.invoice.create({
-        data: {
-          invoiceNumber,
-          status: "draft",
-          dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-          notes: dto.notes,
-          projectId: dto.projectId,
-          organizationId: orgId,
-          lineItems: {
-            create: dto.lineItems.map((item) => ({
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-            })),
+        return tx.invoice.create({
+          data: {
+            invoiceNumber,
+            status: "draft",
+            dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+            notes: dto.notes,
+            projectId: dto.projectId,
+            organizationId: orgId,
+            lineItems: {
+              create: dto.lineItems.map((item) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+              })),
+            },
           },
-        },
-        include: { lineItems: true },
-      });
-    });
+          include: { lineItems: true },
+        });
+      }, { isolationLevel: 'Serializable' });
+    } catch (err: any) {
+      if (err?.code === "P2002" && retries < 3) {
+        return this.create(dto, orgId, retries + 1);
+      }
+      throw err;
+    }
   }
 
   async findAll(orgId: string, query: InvoiceListQueryDto) {
@@ -202,32 +209,36 @@ export class InvoicesService {
   }
 
   async getStats(orgId: string) {
-    const totalInvoices = await this.prisma.invoice.count({
-      where: { organizationId: orgId },
-    });
+    const [counts, totals] = await Promise.all([
+      this.prisma.invoice.groupBy({
+        by: ["status"],
+        where: { organizationId: orgId },
+        _count: true,
+      }),
+      this.prisma.$queryRaw<
+        Array<{ status: string; total: bigint | number }>
+      >`
+        SELECT i.status, COALESCE(SUM(li.quantity * li."unitPrice"), 0) as total
+        FROM "Invoice" i
+        LEFT JOIN "InvoiceLineItem" li ON li."invoiceId" = i.id
+        WHERE i."organizationId" = ${orgId}
+        GROUP BY i.status
+      `,
+    ]);
 
-    const allStats = await this.prisma.invoice.findMany({
-      where: { organizationId: orgId },
-      select: {
-        status: true,
-        lineItems: { select: { quantity: true, unitPrice: true } },
-      },
-    });
+    const totalInvoices = counts.reduce((sum, c) => sum + c._count, 0);
 
     let totalAmount = 0;
     let paidAmount = 0;
     let outstandingAmount = 0;
 
-    for (const inv of allStats) {
-      const invoiceTotal = inv.lineItems.reduce(
-        (sum, item) => sum + item.quantity * item.unitPrice,
-        0,
-      );
-      totalAmount += invoiceTotal;
-      if (inv.status === "paid") {
-        paidAmount += invoiceTotal;
+    for (const row of totals) {
+      const amount = Number(row.total);
+      totalAmount += amount;
+      if (row.status === "paid") {
+        paidAmount += amount;
       } else {
-        outstandingAmount += invoiceTotal;
+        outstandingAmount += amount;
       }
     }
 
