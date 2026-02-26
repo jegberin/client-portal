@@ -70,7 +70,7 @@ export default function SignupPage() {
         return;
       }
 
-      window.location.href = "/verify-email";
+      window.location.href = "/setup";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");
     } finally {
