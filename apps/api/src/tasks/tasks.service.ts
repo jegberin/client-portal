@@ -4,12 +4,16 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { paginationArgs, paginatedResponse } from "../common";
 import { CreateTaskDto, UpdateTaskDto } from "./tasks.dto";
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(dto: CreateTaskDto, projectId: string, orgId: string) {
     const project = await this.prisma.project.findFirst({
@@ -23,7 +27,7 @@ export class TasksService {
     });
     const order = (maxOrder._max.order ?? -1) + 1;
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -33,6 +37,14 @@ export class TasksService {
         organizationId: orgId,
       },
     });
+
+    this.notifications.notifyTaskCreated(
+      projectId,
+      dto.title,
+      dto.dueDate ? new Date(dto.dueDate) : undefined,
+    );
+
+    return task;
   }
 
   async findByProject(
