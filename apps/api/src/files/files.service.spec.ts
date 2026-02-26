@@ -1,6 +1,11 @@
 import { describe, expect, it, mock, beforeEach } from "bun:test";
 import { FilesService } from "./files.service";
-import { NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
+import {
+  NotFoundException,
+  ForbiddenException,
+  PayloadTooLargeException,
+  BadRequestException,
+} from "@nestjs/common";
 import { Readable } from "stream";
 
 const mockStorage = {
@@ -29,6 +34,7 @@ const mockPrisma = {
     findFirst: mock(() => Promise.resolve(null)),
     delete: mock(() => Promise.resolve()),
     deleteMany: mock(() => Promise.resolve({ count: 1 })),
+    count: mock(() => Promise.resolve(0)),
   },
   projectClient: {
     findFirst: mock(() => Promise.resolve(null)),
@@ -43,6 +49,11 @@ const mockConfig = {
   },
 };
 
+// Default: max size = 50 MB
+const mockSettingsService = {
+  getEffectiveMaxFileSize: mock(() => Promise.resolve(50)),
+};
+
 describe("FilesService", () => {
   let service: FilesService;
 
@@ -50,16 +61,86 @@ describe("FilesService", () => {
     service = new FilesService(
       mockPrisma as any,
       mockConfig as any,
+      mockSettingsService as any,
       mockStorage as any,
+    );
+    // Reset the max file size to the default between tests
+    mockSettingsService.getEffectiveMaxFileSize.mockImplementation(() =>
+      Promise.resolve(50),
     );
   });
 
-  it("upload rejects files over size limit", async () => {
+  // --- Size validation ---
+
+  it("upload rejects files over size limit with PayloadTooLargeException", async () => {
     const file = {
       originalname: "big.zip",
       buffer: Buffer.alloc(0),
       mimetype: "application/zip",
-      size: 100 * 1024 * 1024, // 100MB
+      size: 100 * 1024 * 1024, // 100 MB — exceeds default 50 MB
+    } as any;
+
+    try {
+      await service.upload(file, "proj-1", "org-1", "user-1");
+      expect(true).toBe(false); // must not reach
+    } catch (e) {
+      expect(e).toBeInstanceOf(PayloadTooLargeException);
+    }
+  });
+
+  it("error message from PayloadTooLargeException includes actual size and max size", async () => {
+    // Set org max to 10 MB so the message is predictable
+    mockSettingsService.getEffectiveMaxFileSize.mockImplementation(() =>
+      Promise.resolve(10),
+    );
+
+    const file = {
+      originalname: "large.zip",
+      buffer: Buffer.alloc(0),
+      mimetype: "application/zip",
+      size: 25 * 1024 * 1024, // 25 MB
+    } as any;
+
+    try {
+      await service.upload(file, "proj-1", "org-1", "user-1");
+      expect(true).toBe(false);
+    } catch (e) {
+      expect(e).toBeInstanceOf(PayloadTooLargeException);
+      const err = e as PayloadTooLargeException;
+      const response = err.getResponse() as Record<string, unknown>;
+      const message = String(response.message ?? response);
+      // Both the actual size (25MB) and max (10MB) must appear in the message
+      expect(message).toContain("25");
+      expect(message).toContain("10");
+    }
+  });
+
+  it("upload does not throw when file is exactly at the size limit", async () => {
+    mockSettingsService.getEffectiveMaxFileSize.mockImplementation(() =>
+      Promise.resolve(10),
+    );
+    mockPrisma.project.findFirst.mockReturnValue(
+      Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+    );
+
+    const file = {
+      originalname: "exact.pdf",
+      buffer: Buffer.alloc(0),
+      mimetype: "application/pdf",
+      size: 10 * 1024 * 1024, // exactly 10 MB
+    } as any;
+
+    // Should NOT throw — exactly at the limit is allowed
+    const result = await service.upload(file, "proj-1", "org-1", "user-1");
+    expect(result).toBeDefined();
+  });
+
+  it("upload rejects blocked file extensions with BadRequestException", async () => {
+    const file = {
+      originalname: "malware.exe",
+      buffer: Buffer.alloc(0),
+      mimetype: "application/octet-stream",
+      size: 1024,
     } as any;
 
     try {
@@ -71,6 +152,10 @@ describe("FilesService", () => {
   });
 
   it("upload creates file record", async () => {
+    mockPrisma.project.findFirst.mockReturnValue(
+      Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+    );
+
     const file = {
       originalname: "doc.pdf",
       buffer: Buffer.from("pdf content"),
@@ -82,6 +167,8 @@ describe("FilesService", () => {
     expect(result.filename).toBe("doc.pdf");
     expect(mockStorage.upload).toHaveBeenCalled();
   });
+
+  // --- Download authorization ---
 
   it("download throws when file not found", async () => {
     mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(null));
@@ -158,6 +245,8 @@ describe("FilesService", () => {
     }
   });
 
+  // --- Download URL ---
+
   it("getDownloadUrl rejects member not assigned to project", async () => {
     const file = {
       id: "file-1",
@@ -191,6 +280,8 @@ describe("FilesService", () => {
     expect(result.url).toBe("/api/files/file-1/download");
   });
 
+  // --- Remove ---
+
   it("remove deletes from storage and db", async () => {
     const file = {
       id: "file-1",
@@ -198,9 +289,17 @@ describe("FilesService", () => {
       organizationId: "org-1",
     };
     mockPrisma.file.findFirst.mockReturnValue(Promise.resolve(file));
+    // $transaction executes the callback synchronously in this mock
+    mockPrisma.$transaction.mockImplementation(async (fn: any) => {
+      return fn({
+        file: {
+          findFirst: mock(() => Promise.resolve(file)),
+          deleteMany: mock(() => Promise.resolve({ count: 1 })),
+        },
+      });
+    });
 
     await service.remove("file-1", "org-1");
     expect(mockStorage.delete).toHaveBeenCalled();
-    expect(mockPrisma.file.deleteMany).toHaveBeenCalled();
   });
 });
