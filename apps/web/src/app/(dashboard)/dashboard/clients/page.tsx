@@ -127,8 +127,8 @@ export default function ClientsPage() {
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
     const ok = await confirm({
-      title: "Remove Member",
-      message: `Remove ${memberName} from this organization? They will lose access to all projects.`,
+      title: "Remove Client",
+      message: `Remove ${memberName}? They will lose access to all projects.`,
       confirmLabel: "Remove",
       variant: "danger",
     });
@@ -138,7 +138,7 @@ export default function ClientsPage() {
       success(`${memberName} removed`);
       loadMembers();
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to remove member");
+      showError(err instanceof Error ? err.message : "Failed to remove client");
     }
   };
 
@@ -189,20 +189,18 @@ export default function ClientsPage() {
     }
   };
 
-  const roleColor = (role: string) => {
-    switch (role) {
-      case "owner":
-        return "bg-purple-100 text-purple-700";
-      case "admin":
-        return "bg-blue-100 text-blue-700";
-      default:
-        return "bg-[var(--muted)] text-[var(--foreground)]";
-    }
-  };
+  // Separate clients (member role) from agency team (owner/admin)
+  const clients = members.filter((m) => m.role === "member");
+  const team = members.filter((m) => m.role !== "member");
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Members</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Clients</h1>
+        <p className="text-sm text-[var(--muted-foreground)] mt-1">
+          Manage your clients and their access to projects.
+        </p>
+      </div>
 
       {/* Invite Form */}
       <div className="max-w-lg">
@@ -255,178 +253,6 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {/* Members List */}
-      <div>
-        <h2 className="text-sm font-medium mb-3">Team Members</h2>
-        {loading ? (
-          <div className="space-y-2">
-            <ClientItemSkeleton />
-            <ClientItemSkeleton />
-            <ClientItemSkeleton />
-          </div>
-        ) : members.length > 0 ? (
-          <>
-            <div className="space-y-2">
-              {members.map((member) => {
-                const isSelf = member.userId === currentUserId;
-                const canChangeRole = currentRole === "owner" && !isSelf;
-                const canRemove = (currentRole === "owner" || currentRole === "admin") && !isSelf;
-                const isExpanded = expandedMember === member.id;
-                const memberProfile = editingProfile[member.userId];
-                const savedProfile = profiles[member.userId];
-
-                return (
-                  <div
-                    key={member.id}
-                    className="border border-[var(--border)] rounded-lg"
-                  >
-                    <div
-                      className="flex items-center justify-between p-3 cursor-pointer hover:bg-[var(--muted)] transition-colors"
-                      onClick={() => handleExpandMember(member.id, member.userId)}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">{member.user.name}</p>
-                            {isSelf && (
-                              <span className="text-xs text-[var(--muted-foreground)]">(you)</span>
-                            )}
-                          </div>
-                          <p className="text-xs text-[var(--muted-foreground)]">
-                            {member.user.email}
-                            {savedProfile?.company && (
-                              <span> &middot; {savedProfile.company}</span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        {canChangeRole ? (
-                          <select
-                            value={member.role}
-                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                            className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer ${roleColor(member.role)}`}
-                          >
-                            <option value="owner">owner</option>
-                            <option value="admin">admin</option>
-                            <option value="member">member</option>
-                          </select>
-                        ) : (
-                          <span className={`text-xs px-2 py-1 rounded-full ${roleColor(member.role)}`}>
-                            {member.role}
-                          </span>
-                        )}
-                        {canRemove && (
-                          <button
-                            onClick={() => handleRemoveMember(member.id, member.user.name)}
-                            className="p-1.5 text-[var(--muted-foreground)] hover:text-red-500 transition-colors"
-                            title="Remove member"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {isExpanded && memberProfile && (
-                      <div className="px-3 pb-3 pt-1 border-t border-[var(--border)] space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-xs text-[var(--muted-foreground)]">Company</label>
-                            <input
-                              type="text"
-                              value={memberProfile.company || ""}
-                              onChange={(e) =>
-                                setEditingProfile((prev) => ({
-                                  ...prev,
-                                  [member.userId]: { ...prev[member.userId], company: e.target.value },
-                                }))
-                              }
-                              className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-[var(--muted-foreground)]">Phone</label>
-                            <input
-                              type="text"
-                              value={memberProfile.phone || ""}
-                              onChange={(e) =>
-                                setEditingProfile((prev) => ({
-                                  ...prev,
-                                  [member.userId]: { ...prev[member.userId], phone: e.target.value },
-                                }))
-                              }
-                              className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-[var(--muted-foreground)]">Address</label>
-                            <input
-                              type="text"
-                              value={memberProfile.address || ""}
-                              onChange={(e) =>
-                                setEditingProfile((prev) => ({
-                                  ...prev,
-                                  [member.userId]: { ...prev[member.userId], address: e.target.value },
-                                }))
-                              }
-                              className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-[var(--muted-foreground)]">Website</label>
-                            <input
-                              type="text"
-                              value={memberProfile.website || ""}
-                              onChange={(e) =>
-                                setEditingProfile((prev) => ({
-                                  ...prev,
-                                  [member.userId]: { ...prev[member.userId], website: e.target.value },
-                                }))
-                              }
-                              className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs text-[var(--muted-foreground)]">Description</label>
-                          <textarea
-                            value={memberProfile.description || ""}
-                            onChange={(e) =>
-                              setEditingProfile((prev) => ({
-                                ...prev,
-                                [member.userId]: { ...prev[member.userId], description: e.target.value },
-                              }))
-                            }
-                            rows={2}
-                            className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm resize-none"
-                          />
-                        </div>
-                        <button
-                          onClick={() => handleSaveProfile(member.userId)}
-                          disabled={savingProfile === member.userId}
-                          className="px-3 py-1.5 bg-[var(--primary)] text-white rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
-                        >
-                          {savingProfile === member.userId ? "Saving..." : "Save Profile"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-4">
-              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-            </div>
-          </>
-        ) : (
-          <p className="text-sm text-[var(--muted-foreground)] text-center py-4">
-            No members yet.
-          </p>
-        )}
-      </div>
-
       {/* Pending Invitations */}
       {invitations.length > 0 && (
         <div>
@@ -453,6 +279,224 @@ export default function ClientsPage() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Clients List */}
+      <div>
+        <h2 className="text-sm font-medium mb-3">
+          Clients{clients.length > 0 && ` (${clients.length})`}
+        </h2>
+        {loading ? (
+          <div className="space-y-2">
+            <ClientItemSkeleton />
+            <ClientItemSkeleton />
+          </div>
+        ) : clients.length > 0 ? (
+          <div className="space-y-2">
+            {clients.map((member) => {
+              const isExpanded = expandedMember === member.id;
+              const memberProfile = editingProfile[member.userId];
+              const savedProfile = profiles[member.userId];
+
+              return (
+                <div
+                  key={member.id}
+                  className="border border-[var(--border)] rounded-lg"
+                >
+                  <div
+                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-[var(--muted)] transition-colors"
+                    onClick={() => handleExpandMember(member.id, member.userId)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      <div>
+                        <p className="text-sm font-medium">{member.user.name}</p>
+                        <p className="text-xs text-[var(--muted-foreground)]">
+                          {member.user.email}
+                          {savedProfile?.company && (
+                            <span> &middot; {savedProfile.company}</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleRemoveMember(member.id, member.user.name)}
+                        className="p-1.5 text-[var(--muted-foreground)] hover:text-red-500 transition-colors"
+                        title="Remove client"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && memberProfile && (
+                    <div className="px-3 pb-3 pt-1 border-t border-[var(--border)] space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-[var(--muted-foreground)]">Company</label>
+                          <input
+                            type="text"
+                            value={memberProfile.company || ""}
+                            onChange={(e) =>
+                              setEditingProfile((prev) => ({
+                                ...prev,
+                                [member.userId]: { ...prev[member.userId], company: e.target.value },
+                              }))
+                            }
+                            className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-[var(--muted-foreground)]">Phone</label>
+                          <input
+                            type="text"
+                            value={memberProfile.phone || ""}
+                            onChange={(e) =>
+                              setEditingProfile((prev) => ({
+                                ...prev,
+                                [member.userId]: { ...prev[member.userId], phone: e.target.value },
+                              }))
+                            }
+                            className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-[var(--muted-foreground)]">Address</label>
+                          <input
+                            type="text"
+                            value={memberProfile.address || ""}
+                            onChange={(e) =>
+                              setEditingProfile((prev) => ({
+                                ...prev,
+                                [member.userId]: { ...prev[member.userId], address: e.target.value },
+                              }))
+                            }
+                            className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-[var(--muted-foreground)]">Website</label>
+                          <input
+                            type="text"
+                            value={memberProfile.website || ""}
+                            onChange={(e) =>
+                              setEditingProfile((prev) => ({
+                                ...prev,
+                                [member.userId]: { ...prev[member.userId], website: e.target.value },
+                              }))
+                            }
+                            className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-[var(--muted-foreground)]">Description</label>
+                        <textarea
+                          value={memberProfile.description || ""}
+                          onChange={(e) =>
+                            setEditingProfile((prev) => ({
+                              ...prev,
+                              [member.userId]: { ...prev[member.userId], description: e.target.value },
+                            }))
+                          }
+                          rows={2}
+                          className="w-full mt-0.5 px-2 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm resize-none"
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleSaveProfile(member.userId)}
+                        disabled={savingProfile === member.userId}
+                        className="px-3 py-1.5 bg-[var(--primary)] text-white rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                      >
+                        {savingProfile === member.userId ? "Saving..." : "Save Profile"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted-foreground)] text-center py-4">
+            No clients yet. Invite your first client above.
+          </p>
+        )}
+        <div className="mt-4">
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      </div>
+
+      {/* Agency Team */}
+      {team.length > 0 && (
+        <div>
+          <h2 className="text-sm font-medium mb-1">Your Team</h2>
+          <p className="text-xs text-[var(--muted-foreground)] mb-3">
+            Agency members who manage projects. Clients cannot see this list.
+          </p>
+          <div className="space-y-2">
+            {team.map((member) => {
+              const isSelf = member.userId === currentUserId;
+              const canChangeRole = currentRole === "owner" && !isSelf;
+              const canRemove = currentRole === "owner" && !isSelf;
+
+              const roleColor = (role: string) => {
+                switch (role) {
+                  case "owner":
+                    return "bg-purple-100 text-purple-700";
+                  case "admin":
+                    return "bg-blue-100 text-blue-700";
+                  default:
+                    return "bg-[var(--muted)] text-[var(--foreground)]";
+                }
+              };
+
+              return (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-3 border border-[var(--border)] rounded-lg"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{member.user.name}</p>
+                      {isSelf && (
+                        <span className="text-xs text-[var(--muted-foreground)]">(you)</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {member.user.email}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canChangeRole ? (
+                      <select
+                        value={member.role}
+                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                        className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer ${roleColor(member.role)}`}
+                      >
+                        <option value="owner">owner</option>
+                        <option value="admin">admin</option>
+                      </select>
+                    ) : (
+                      <span className={`text-xs px-2 py-1 rounded-full ${roleColor(member.role)}`}>
+                        {member.role}
+                      </span>
+                    )}
+                    {canRemove && (
+                      <button
+                        onClick={() => handleRemoveMember(member.id, member.user.name)}
+                        className="p-1.5 text-[var(--muted-foreground)] hover:text-red-500 transition-colors"
+                        title="Remove member"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

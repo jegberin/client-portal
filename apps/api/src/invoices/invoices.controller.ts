@@ -7,9 +7,12 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
+import { Response } from "express";
 import { InvoicesService } from "./invoices.service";
+import { InvoicePdfService } from "./invoice-pdf.service";
 import {
   CreateInvoiceDto,
   UpdateInvoiceDto,
@@ -27,7 +30,10 @@ import {
 @Controller("invoices")
 @UseGuards(AuthGuard, RolesGuard)
 export class InvoicesController {
-  constructor(private invoicesService: InvoicesService) {}
+  constructor(
+    private invoicesService: InvoicesService,
+    private invoicePdfService: InvoicePdfService,
+  ) {}
 
   @Post()
   @Roles("owner", "admin")
@@ -49,8 +55,11 @@ export class InvoicesController {
 
   @Get("stats")
   @Roles("owner", "admin")
-  getStats(@CurrentOrg("id") orgId: string) {
-    return this.invoicesService.getStats(orgId);
+  getStats(
+    @CurrentOrg("id") orgId: string,
+    @Query("projectId") projectId?: string,
+  ) {
+    return this.invoicesService.getStats(orgId, projectId);
   }
 
   @Get("mine")
@@ -67,6 +76,21 @@ export class InvoicesController {
     );
   }
 
+  @Get("mine/:id/pdf")
+  async downloadMinePdf(
+    @Param("id") id: string,
+    @CurrentUser("id") userId: string,
+    @CurrentOrg("id") orgId: string,
+    @Res() res: Response,
+  ) {
+    // Verify client access first
+    await this.invoicesService.findOneMine(id, userId, orgId);
+    const { stream, filename } = await this.invoicePdfService.generate(id, orgId);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    stream.pipe(res);
+  }
+
   @Get("mine/:id")
   findOneMine(
     @Param("id") id: string,
@@ -74,6 +98,19 @@ export class InvoicesController {
     @CurrentOrg("id") orgId: string,
   ) {
     return this.invoicesService.findOneMine(id, userId, orgId);
+  }
+
+  @Get(":id/pdf")
+  @Roles("owner", "admin")
+  async downloadPdf(
+    @Param("id") id: string,
+    @CurrentOrg("id") orgId: string,
+    @Res() res: Response,
+  ) {
+    const { stream, filename } = await this.invoicePdfService.generate(id, orgId);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    stream.pipe(res);
   }
 
   @Get(":id")

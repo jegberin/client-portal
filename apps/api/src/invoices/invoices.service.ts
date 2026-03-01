@@ -208,22 +208,35 @@ export class InvoicesService {
     await this.prisma.invoice.delete({ where: { id } });
   }
 
-  async getStats(orgId: string) {
+  async getStats(orgId: string, projectId?: string) {
+    const where: any = { organizationId: orgId };
+    if (projectId) where.projectId = projectId;
+
     const [counts, totals] = await Promise.all([
       this.prisma.invoice.groupBy({
         by: ["status"],
-        where: { organizationId: orgId },
+        where,
         _count: true,
       }),
-      this.prisma.$queryRaw<
-        Array<{ status: string; total: bigint | number }>
-      >`
-        SELECT i.status, COALESCE(SUM(li.quantity * li."unitPrice"), 0) as total
-        FROM "Invoice" i
-        LEFT JOIN "InvoiceLineItem" li ON li."invoiceId" = i.id
-        WHERE i."organizationId" = ${orgId}
-        GROUP BY i.status
-      `,
+      projectId
+        ? this.prisma.$queryRaw<
+            Array<{ status: string; total: bigint | number }>
+          >`
+          SELECT i.status, COALESCE(SUM(li.quantity * li."unitPrice"), 0) as total
+          FROM "invoice" i
+          LEFT JOIN "invoice_line_item" li ON li."invoiceId" = i.id
+          WHERE i."organizationId" = ${orgId} AND i."projectId" = ${projectId}
+          GROUP BY i.status
+        `
+        : this.prisma.$queryRaw<
+            Array<{ status: string; total: bigint | number }>
+          >`
+          SELECT i.status, COALESCE(SUM(li.quantity * li."unitPrice"), 0) as total
+          FROM "invoice" i
+          LEFT JOIN "invoice_line_item" li ON li."invoiceId" = i.id
+          WHERE i."organizationId" = ${orgId}
+          GROUP BY i.status
+        `,
     ]);
 
     const totalInvoices = counts.reduce((sum, c) => sum + c._count, 0);

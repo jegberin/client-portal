@@ -23,6 +23,24 @@ async function getBranding() {
   }
 }
 
+async function getOrgName() {
+  try {
+    const cookieStore = await cookies();
+    const res = await fetch(
+      `${API_URL}/api/auth/organization/get-full-organization`,
+      {
+        headers: { Cookie: cookieStore.toString() },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return null;
+    const org = await res.json();
+    return org?.name || null;
+  } catch {
+    return null;
+  }
+}
+
 function getLogoSrc(branding: { logoKey?: string; logoUrl?: string; organizationId?: string } | null) {
   if (!branding) return null;
   if (branding.logoKey) {
@@ -39,12 +57,15 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
+  const [session, branding, orgName] = await Promise.all([
+    getSession(),
+    getBranding(),
+    getOrgName(),
+  ]);
   if (!session) {
     redirect("/login");
   }
 
-  const branding = await getBranding();
   const logoSrc = getLogoSrc(branding);
 
   return (
@@ -61,7 +82,7 @@ export default async function PortalLayout({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={logoSrc} alt="Logo" className="h-8" />
         )}
-        <span className="font-semibold flex-1">Client Portal</span>
+        <span className="font-semibold flex-1">{orgName || "Atrium"}</span>
         <Link
           href="/portal"
           className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
@@ -76,7 +97,7 @@ export default async function PortalLayout({
         </Link>
         <SignOutButton />
       </header>
-      <main className="max-w-4xl mx-auto p-8">{children}</main>
+      <main className="max-w-6xl mx-auto p-8">{children}</main>
     </div>
   );
 }

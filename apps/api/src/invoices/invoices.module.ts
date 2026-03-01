@@ -1,11 +1,15 @@
 import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { InvoicesController } from "./invoices.controller";
 import { InvoicesService } from "./invoices.service";
+import { InvoicePdfService } from "./invoice-pdf.service";
+import { InvoiceOverdueTask } from "./invoice-overdue.task";
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [ScheduleModule.forRoot(), NotificationsModule],
   controllers: [InvoicesController],
-  providers: [InvoicesService],
+  providers: [InvoicesService, InvoicePdfService, InvoiceOverdueTask],
+  exports: [InvoicesService],
 })
 export class InvoicesModule {}

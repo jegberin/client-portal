@@ -47,8 +47,8 @@ export function ClientAssignment({
 
   return (
     <div>
-      <h2 className="text-sm font-medium mb-3">
-        Assigned Clients{assignedIds.size > 0 && ` (${assignedIds.size})`}
+      <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
+        Clients{assignedIds.size > 0 && ` (${assignedIds.size})`}
       </h2>
 
       {clients.length > 0 ? (

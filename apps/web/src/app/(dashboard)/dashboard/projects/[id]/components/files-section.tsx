@@ -39,17 +39,14 @@ export function FilesSection({
       const formData = new FormData();
       formData.append("file", file);
 
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/files/upload?projectId=${projectId}`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        },
-      );
+      await apiFetch(`/files/upload?projectId=${projectId}`, {
+        method: "POST",
+        body: formData,
+      });
       onFileChange();
+      success("File uploaded");
     } catch (err) {
-      console.error(err);
+      showError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
       setUploading(false);
     }

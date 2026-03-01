@@ -123,13 +123,15 @@ model Invitation {
 // ─── Application tables ───
 
 model Project {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   name           String
   description    String?
-  status         String   @default("not_started")
+  status         String    @default("not_started")
+  startDate      DateTime?
+  endDate        DateTime?
   organizationId String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   archivedAt     DateTime?
 
   files    File[]
@@ -176,14 +178,15 @@ model File {
 }
 
 model ProjectUpdate {
-  id             String   @id @default(cuid())
-  content        String
-  imageKey       String?
-  imageMimeType  String?
-  projectId      String
-  organizationId String
-  authorId       String
-  createdAt      DateTime @default(now())
+  id                 String   @id @default(cuid())
+  content            String
+  attachmentKey      String?  @map("image_key")
+  attachmentMimeType String?  @map("image_mime_type")
+  attachmentName     String?
+  projectId          String
+  organizationId     String
+  authorId           String
+  createdAt          DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 

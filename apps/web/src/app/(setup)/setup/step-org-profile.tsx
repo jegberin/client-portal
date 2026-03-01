@@ -41,16 +41,10 @@ export function StepOrgProfile({ orgName, onNext }: StepOrgProfileProps) {
     try {
       const formData = new FormData();
       formData.append("logo", file);
-      const res = await fetch(`${API_URL}/api/branding/logo`, {
+      const updated = await apiFetch<Branding>("/branding/logo", {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Upload failed");
-      }
-      const updated = await res.json();
       setBranding((prev) => ({ ...prev, ...updated }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");

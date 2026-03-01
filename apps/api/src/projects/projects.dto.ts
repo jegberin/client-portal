@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, MaxLength } from "class-validator";
+import { IsString, IsOptional, IsArray, IsDateString, MaxLength } from "class-validator";
 import { PaginationQueryDto } from "../common";
 
 export class CreateProjectDto {
@@ -14,6 +14,14 @@ export class CreateProjectDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
 
   @IsArray()
   @IsString({ each: true })
@@ -52,6 +60,14 @@ export class UpdateProjectDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string | null;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string | null;
 
   @IsArray()
   @IsString({ each: true })

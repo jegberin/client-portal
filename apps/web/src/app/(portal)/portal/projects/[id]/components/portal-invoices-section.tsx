@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { Pagination } from "@/components/pagination";
-import { Receipt } from "lucide-react";
+import { Receipt, Download } from "lucide-react";
 
 interface LineItem {
   id: string;
@@ -70,6 +70,27 @@ export function PortalInvoicesSection({
     loadInvoices();
   }, [loadInvoices]);
 
+  const handleDownloadPdf = async (invoiceId: string, invoiceNumber: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/invoices/mine/${invoiceId}/pdf`,
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) {
     return (
       <div>
@@ -124,11 +145,20 @@ export function PortalInvoicesSection({
 
                 {isExpanded && (
                   <div className="px-3 pb-3 space-y-3 border-t border-[var(--border)]">
-                    {inv.dueDate && (
-                      <p className="text-sm text-[var(--muted-foreground)] pt-3">
-                        Due: {new Date(inv.dueDate).toLocaleDateString()}
-                      </p>
-                    )}
+                    <div className="flex items-center justify-between pt-3">
+                      {inv.dueDate ? (
+                        <p className="text-sm text-[var(--muted-foreground)]">
+                          Due: {new Date(inv.dueDate).toLocaleDateString()}
+                        </p>
+                      ) : <div />}
+                      <button
+                        onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                        className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
+                      >
+                        <Download size={14} />
+                        Download PDF
+                      </button>
+                    </div>
 
                     <div className="border border-[var(--border)] rounded-lg overflow-hidden">
                       <table className="w-full text-sm">

@@ -17,9 +17,11 @@ interface Branding {
 export function BrandingSection({
   branding,
   onBrandingChange,
+  orgName,
 }: {
   branding: Branding;
   onBrandingChange: (branding: Branding) => void;
+  orgName?: string;
 }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -33,18 +35,10 @@ export function BrandingSection({
       const formData = new FormData();
       formData.append("logo", file);
 
-      const res = await fetch(`${API_URL}/api/branding/logo`, {
+      const updated = await apiFetch<Branding>("/branding/logo", {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Upload failed");
-      }
-
-      const updated = await res.json();
       onBrandingChange({ ...branding, ...updated });
     } catch (err) {
       console.error(err);
@@ -186,7 +180,7 @@ export function BrandingSection({
               Logo
             </div>
           )}
-          <span className="text-sm font-semibold flex-1">Client Portal</span>
+          <span className="text-sm font-semibold flex-1">{orgName || "Atrium"}</span>
           <div className="flex gap-2">
             <div
               className="w-6 h-6 rounded"

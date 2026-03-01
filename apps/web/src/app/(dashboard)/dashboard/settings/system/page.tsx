@@ -46,6 +46,7 @@ export default function SystemSettingsPage() {
     primaryColor: "#006b68",
     accentColor: "#ff6b5c",
   });
+  const [orgName, setOrgName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
@@ -60,16 +61,22 @@ export default function SystemSettingsPage() {
   const [hasResendApiKey, setHasResendApiKey] = useState(false);
   const [hasSmtpPass, setHasSmtpPass] = useState(false);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
   useEffect(() => {
     Promise.all([
       apiFetch<SystemSettings>("/settings"),
       apiFetch<Branding>("/branding"),
+      fetch(`${API_URL}/api/auth/organization/get-full-organization`, {
+        credentials: "include",
+      }).then((r) => (r.ok ? r.json() : null)),
     ])
-      .then(([settingsData, brandingData]) => {
+      .then(([settingsData, brandingData, org]) => {
         setHasResendApiKey(!!settingsData.resendApiKey);
         setHasSmtpPass(!!settingsData.smtpPass);
         setSettings(settingsData);
         setBranding(brandingData);
+        if (org?.name) setOrgName(org.name);
         setLoading(false);
       })
       .catch((err) => {
@@ -112,6 +119,12 @@ export default function SystemSettingsPage() {
             primaryColor: branding.primaryColor,
             accentColor: branding.accentColor,
           }),
+        }),
+        fetch(`${API_URL}/api/auth/organization/update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: { name: orgName.trim() } }),
+          credentials: "include",
         }),
       ]);
 
@@ -161,9 +174,22 @@ export default function SystemSettingsPage() {
             <h2 className="text-lg font-semibold">Branding</h2>
           </div>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Customize your client portal appearance with your logo and brand colors.
+            Customize your client portal appearance with your company name, logo, and brand colors.
           </p>
-          <BrandingSection branding={branding} onBrandingChange={setBranding} />
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Company Name</label>
+            <input
+              type="text"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              placeholder="Your company name"
+              className="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]"
+            />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Displayed in the sidebar and client portal header.
+            </p>
+          </div>
+          <BrandingSection branding={branding} onBrandingChange={setBranding} orgName={orgName} />
         </section>
 
         {/* Email Configuration */}

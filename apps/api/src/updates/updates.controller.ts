@@ -27,17 +27,17 @@ export class UpdatesController {
   @Post()
   @Roles("owner", "admin")
   @UseInterceptors(
-    FileInterceptor("image", { limits: { fileSize: 10 * 1024 * 1024 } }),
+    FileInterceptor("attachment", { limits: { fileSize: 10 * 1024 * 1024 } }),
   )
   create(
     @Body() dto: CreateUpdateDto,
     @Query("projectId") projectId: string,
-    @UploadedFile() image: UploadedFileType | undefined,
+    @UploadedFile() attachment: UploadedFileType | undefined,
     @CurrentOrg("id") orgId: string,
     @CurrentUser("id") userId: string,
   ) {
     if (!projectId) throw new BadRequestException("projectId is required");
-    return this.updatesService.create(dto, projectId, orgId, userId, image);
+    return this.updatesService.create(dto, projectId, orgId, userId, attachment);
   }
 
   @Get("project/:projectId")
@@ -71,13 +71,13 @@ export class UpdatesController {
     );
   }
 
-  @Get(":id/image")
-  getImage(
+  @Get(":id/attachment")
+  getAttachment(
     @Param("id") id: string,
     @CurrentOrg("id") orgId: string,
     @Res() res: Response,
   ) {
-    return this.updatesService.getImage(id, orgId, res);
+    return this.updatesService.getAttachment(id, orgId, res);
   }
 
   @Delete(":id")

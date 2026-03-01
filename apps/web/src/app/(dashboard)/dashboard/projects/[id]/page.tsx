@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { ProjectDetailSkeleton } from "@/components/skeletons";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Trash2, Calendar } from "lucide-react";
 import { StatusPipeline } from "./components/status-pipeline";
 import { ClientAssignment } from "./components/client-assignment";
 import { TasksSection } from "./components/tasks-section";
@@ -29,6 +29,8 @@ interface Project {
   name: string;
   description?: string;
   status: string;
+  startDate?: string | null;
+  endDate?: string | null;
   archivedAt?: string | null;
   clients?: { userId: string }[];
   files: FileRecord[];
@@ -58,6 +60,55 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+function formatDateDisplay(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function DateField({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-sm text-[var(--muted-foreground)] shrink-0">{label}</span>
+      <div className="relative">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.showPicker()}
+          className="text-sm bg-transparent border border-[var(--border)] rounded px-2 py-1 w-[170px] text-right disabled:opacity-50 cursor-pointer hover:border-[var(--muted-foreground)] transition-colors"
+        >
+          {value ? formatDateDisplay(value) : <span className="text-[var(--muted-foreground)]">Select date</span>}
+        </button>
+        <input
+          ref={inputRef}
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className="absolute inset-0 opacity-0 pointer-events-none"
+          tabIndex={-1}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -69,7 +120,6 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("updates");
   const [currentRole, setCurrentRole] = useState<string | null>(null);
-
   const isArchived = !!project?.archivedAt;
   const isOwner = currentRole === "owner";
 
@@ -93,7 +143,7 @@ export default function ProjectDetailPage() {
     apiFetch<{ role: string }>("/auth/organization/get-active-member")
       .then((member) => setCurrentRole(member.role))
       .catch(console.error);
-  }, [loadProject]);
+  }, [loadProject, id]);
 
   const handleStatusChange = async (status: string) => {
     if (isArchived) return;
@@ -127,6 +177,19 @@ export default function ProjectDetailPage() {
       body: JSON.stringify({ clientUserIds: newIds }),
     });
     loadProject();
+  };
+
+  const handleDateChange = async (field: "startDate" | "endDate", value: string) => {
+    if (isArchived) return;
+    try {
+      await apiFetch(`/projects/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ [field]: value || null }),
+      });
+      loadProject();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to update date");
+    }
   };
 
   const handleArchive = async () => {
@@ -180,7 +243,7 @@ export default function ProjectDetailPage() {
   return (
     <div className="flex gap-8 items-start">
       {/* Left sidebar — project metadata */}
-      <aside className="w-72 shrink-0 sticky top-8 space-y-6">
+      <aside className="w-72 shrink-0 sticky top-8 space-y-4">
         {error && (
           <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">{error}</div>
         )}
@@ -192,35 +255,31 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        <div className="space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <h1 className="text-xl font-bold leading-tight">{project.name}</h1>
-            {isArchived ? (
-              <button
-                onClick={handleUnarchive}
-                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 border border-[var(--border)] rounded-lg text-xs hover:bg-[var(--muted)] transition-colors"
-              >
-                <ArchiveRestore size={13} />
-                Unarchive
-              </button>
-            ) : (
-              <button
-                onClick={handleArchive}
-                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 border border-[var(--border)] rounded-lg text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors"
-              >
-                <Archive size={13} />
-                Archive
-              </button>
-            )}
-          </div>
-          {project.description && (
-            <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-              {project.description}
-            </p>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-lg font-bold leading-tight">{project.name}</h1>
+          {isArchived ? (
+            <button
+              onClick={handleUnarchive}
+              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 border border-[var(--border)] rounded-lg text-xs hover:bg-[var(--muted)] transition-colors"
+            >
+              <ArchiveRestore size={13} />
+              Unarchive
+            </button>
+          ) : (
+            <button
+              onClick={handleArchive}
+              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 border border-[var(--border)] rounded-lg text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] transition-colors"
+            >
+              <Archive size={13} />
+              Archive
+            </button>
           )}
         </div>
-
-        <div className="border-t border-[var(--border)]" />
+        {project.description && (
+          <p className="text-xs text-[var(--muted-foreground)] leading-relaxed -mt-1">
+            {project.description}
+          </p>
+        )}
 
         <StatusPipeline
           statuses={statuses}
@@ -236,6 +295,48 @@ export default function ProjectDetailPage() {
           onRemove={handleRemoveClient}
           disabled={isArchived}
         />
+
+        <div className="border-t border-[var(--border)]" />
+
+        <div className="space-y-1.5">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-[var(--muted-foreground)] flex items-center gap-1.5 mb-2">
+            <Calendar size={12} />
+            Timeline
+          </h2>
+          <DateField
+            label="Start"
+            value={project.startDate ? project.startDate.slice(0, 10) : ""}
+            onChange={(val) => handleDateChange("startDate", val)}
+            disabled={isArchived}
+          />
+          <DateField
+            label="End"
+            value={project.endDate ? project.endDate.slice(0, 10) : ""}
+            onChange={(val) => handleDateChange("endDate", val)}
+            disabled={isArchived}
+          />
+          {project.endDate && !isArchived && (() => {
+            const now = new Date();
+            const end = new Date(project.endDate);
+            const diffMs = end.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) {
+              return (
+                <p className="text-xs text-red-500 font-medium">
+                  {Math.abs(diffDays)} day{Math.abs(diffDays) !== 1 ? "s" : ""} overdue
+                </p>
+              );
+            }
+            if (diffDays === 0) {
+              return <p className="text-xs text-amber-600 font-medium">Due today</p>;
+            }
+            return (
+              <p className={`text-xs font-medium ${diffDays <= 7 ? "text-amber-600" : "text-[var(--muted-foreground)]"}`}>
+                {diffDays} day{diffDays !== 1 ? "s" : ""} left
+              </p>
+            );
+          })()}
+        </div>
 
         {isOwner && (
           <>

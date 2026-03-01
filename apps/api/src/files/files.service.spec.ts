@@ -302,4 +302,198 @@ describe("FilesService", () => {
     await service.remove("file-1", "org-1");
     expect(mockStorage.delete).toHaveBeenCalled();
   });
+
+  // --- uploadAsClient ---
+
+  describe("uploadAsClient", () => {
+    const clientFile = {
+      originalname: "report.pdf",
+      buffer: Buffer.from("pdf content"),
+      mimetype: "application/pdf",
+      size: 1024,
+    } as any;
+
+    it("throws ForbiddenException when client is not assigned to the project", async () => {
+      mockPrisma.projectClient.findFirst.mockReturnValue(Promise.resolve(null));
+
+      try {
+        await service.uploadAsClient(clientFile, "proj-1", "org-1", "user-client");
+        expect(true).toBe(false); // must not reach
+      } catch (e) {
+        expect(e).toBeInstanceOf(ForbiddenException);
+        expect((e as ForbiddenException).message).toBe(
+          "You are not assigned to this project",
+        );
+      }
+    });
+
+    it("throws NotFoundException when the project does not exist in the org", async () => {
+      // Client is assigned, but the project is missing (or belongs to another org)
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(Promise.resolve(null));
+
+      try {
+        await service.uploadAsClient(clientFile, "proj-1", "org-1", "user-client");
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(NotFoundException);
+      }
+    });
+
+    it("throws NotFoundException when the project is archived", async () => {
+      // uploadAsClient queries with archivedAt: null — an archived project is invisible.
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      // Prisma returns null because the archivedAt filter excludes the project
+      mockPrisma.project.findFirst.mockReturnValue(Promise.resolve(null));
+
+      try {
+        await service.uploadAsClient(clientFile, "proj-1", "org-1", "user-client");
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(NotFoundException);
+        expect((e as NotFoundException).message).toBe("Project not found");
+      }
+    });
+
+    it("verifies the project query enforces archivedAt: null", async () => {
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(
+        Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+      );
+
+      await service.uploadAsClient(clientFile, "proj-1", "org-1", "user-client");
+
+      // Second findFirst call is the project lookup inside uploadAsClient
+      const projectFindCalls = (mockPrisma.project.findFirst as any).mock.calls;
+      const uploadAsClientCall = projectFindCalls.find(
+        (c: any[]) => c[0]?.where?.archivedAt === null,
+      );
+      expect(uploadAsClientCall).toBeDefined();
+    });
+
+    it("verifies the project client assignment lookup uses the correct userId and projectId", async () => {
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(
+        Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+      );
+
+      await service.uploadAsClient(clientFile, "proj-1", "org-1", "user-client");
+
+      expect(mockPrisma.projectClient.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            projectId: "proj-1",
+            userId: "user-client",
+          }),
+        }),
+      );
+    });
+
+    it("successfully uploads a file for an assigned client on an active project", async () => {
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(
+        Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+      );
+
+      const result = await service.uploadAsClient(
+        clientFile,
+        "proj-1",
+        "org-1",
+        "user-client",
+      );
+
+      expect(result).toBeDefined();
+      expect(result.filename).toBe("report.pdf");
+      expect(mockStorage.upload).toHaveBeenCalled();
+      expect(mockPrisma.file.create).toHaveBeenCalled();
+    });
+
+    it("stores the file under the correct organizationId and projectId", async () => {
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-2", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(
+        Promise.resolve({ id: "proj-2", organizationId: "org-2" }),
+      );
+
+      await service.uploadAsClient(clientFile, "proj-2", "org-2", "user-client");
+
+      const createCall = (mockPrisma.file.create as any).mock.calls.at(-1)[0];
+      expect(createCall.data.projectId).toBe("proj-2");
+      expect(createCall.data.organizationId).toBe("org-2");
+    });
+
+    it("records the uploading client as uploadedById", async () => {
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(
+        Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+      );
+
+      await service.uploadAsClient(clientFile, "proj-1", "org-1", "user-client");
+
+      const createCall = (mockPrisma.file.create as any).mock.calls.at(-1)[0];
+      expect(createCall.data.uploadedById).toBe("user-client");
+    });
+
+    it("rejects blocked file extensions even for assigned clients", async () => {
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(
+        Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+      );
+
+      const exeFile = {
+        originalname: "virus.exe",
+        buffer: Buffer.alloc(0),
+        mimetype: "application/octet-stream",
+        size: 512,
+      } as any;
+
+      try {
+        await service.uploadAsClient(exeFile, "proj-1", "org-1", "user-client");
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(BadRequestException);
+      }
+    });
+
+    it("rejects files over the org size limit even for assigned clients", async () => {
+      mockSettingsService.getEffectiveMaxFileSize.mockImplementation(() =>
+        Promise.resolve(5),
+      );
+      mockPrisma.projectClient.findFirst.mockReturnValue(
+        Promise.resolve({ id: "pc-1", projectId: "proj-1", userId: "user-client" }),
+      );
+      mockPrisma.project.findFirst.mockReturnValue(
+        Promise.resolve({ id: "proj-1", organizationId: "org-1" }),
+      );
+
+      const bigFile = {
+        originalname: "huge.pdf",
+        buffer: Buffer.alloc(0),
+        mimetype: "application/pdf",
+        size: 20 * 1024 * 1024, // 20 MB > 5 MB limit
+      } as any;
+
+      try {
+        await service.uploadAsClient(bigFile, "proj-1", "org-1", "user-client");
+        expect(true).toBe(false);
+      } catch (e) {
+        expect(e).toBeInstanceOf(PayloadTooLargeException);
+      }
+    });
+  });
 });

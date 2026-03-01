@@ -14,14 +14,14 @@ import { randomUUID } from "crypto";
 import type { Response } from "express";
 import { paginationArgs, paginatedResponse, sanitizeFilename } from "../common";
 
-const ALLOWED_IMAGE_TYPES = new Set([
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB
+
+const IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
 ]);
-
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 @Injectable()
 export class UpdatesService {
@@ -36,38 +36,36 @@ export class UpdatesService {
     projectId: string,
     organizationId: string,
     authorId: string,
-    image?: UploadedFile,
+    attachment?: UploadedFile,
   ) {
     const project = await this.prisma.project.findFirst({
       where: { id: projectId, organizationId },
     });
     if (!project) throw new NotFoundException("Project not found");
 
-    let imageKey: string | undefined;
-    let imageMimeType: string | undefined;
+    let attachmentKey: string | undefined;
+    let attachmentMimeType: string | undefined;
+    let attachmentName: string | undefined;
 
-    if (image) {
-      if (!ALLOWED_IMAGE_TYPES.has(image.mimetype)) {
-        throw new BadRequestException(
-          "Image must be JPEG, PNG, GIF, or WebP",
-        );
-      }
-      if (image.size > MAX_IMAGE_SIZE) {
-        throw new BadRequestException("Image must be under 10MB");
+    if (attachment) {
+      if (attachment.size > MAX_ATTACHMENT_SIZE) {
+        throw new BadRequestException("Attachment must be under 10MB");
       }
 
-      const safeName = sanitizeFilename(image.originalname);
-      imageKey = `${organizationId}/${projectId}/updates/${randomUUID()}-${safeName}`;
-      imageMimeType = image.mimetype;
+      const safeName = sanitizeFilename(attachment.originalname);
+      attachmentKey = `${organizationId}/${projectId}/updates/${randomUUID()}-${safeName}`;
+      attachmentMimeType = attachment.mimetype;
+      attachmentName = attachment.originalname;
 
-      await this.storage.upload(imageKey, image.buffer, image.mimetype);
+      await this.storage.upload(attachmentKey, attachment.buffer, attachment.mimetype);
     }
 
     const update = await this.prisma.projectUpdate.create({
       data: {
         content: dto.content,
-        imageKey,
-        imageMimeType,
+        attachmentKey,
+        attachmentMimeType,
+        attachmentName,
         projectId,
         organizationId,
         authorId,
@@ -103,19 +101,21 @@ export class UpdatesService {
     });
     const authorMap = new Map(authors.map((a) => [a.id, a]));
 
-    // Generate signed URLs for images
+    // Generate signed URLs for attachments
     const enriched = await Promise.all(
       updates.map(async (u) => {
-        let imageUrl: string | undefined;
-        if (u.imageKey) {
-          imageUrl = await this.storage.getSignedUrl(u.imageKey);
+        let attachmentUrl: string | undefined;
+        if (u.attachmentKey) {
+          attachmentUrl = await this.storage.getSignedUrl(u.attachmentKey);
         }
         const author = authorMap.get(u.authorId);
         return {
           id: u.id,
           content: u.content,
-          imageUrl,
-          hasImage: !!u.imageKey,
+          attachmentUrl,
+          attachmentName: u.attachmentName,
+          attachmentMimeType: u.attachmentMimeType,
+          hasAttachment: !!u.attachmentKey,
           projectId: u.projectId,
           author: author ?? { id: u.authorId, name: "Unknown" },
           createdAt: u.createdAt,
@@ -149,23 +149,33 @@ export class UpdatesService {
     });
     if (!update) throw new NotFoundException("Update not found");
 
-    if (update.imageKey) {
-      await this.storage.delete(update.imageKey);
+    if (update.attachmentKey) {
+      await this.storage.delete(update.attachmentKey);
     }
 
     await this.prisma.projectUpdate.delete({ where: { id } });
   }
 
-  async getImage(id: string, organizationId: string, res: Response) {
+  async getAttachment(id: string, organizationId: string, res: Response) {
     const update = await this.prisma.projectUpdate.findFirst({
       where: { id, organizationId },
     });
-    if (!update || !update.imageKey) {
-      throw new NotFoundException("Image not found");
+    if (!update || !update.attachmentKey) {
+      throw new NotFoundException("Attachment not found");
     }
 
-    const { body, contentType } = await this.storage.download(update.imageKey);
+    const { body, contentType } = await this.storage.download(update.attachmentKey);
     res.setHeader("Content-Type", contentType);
+    if (update.attachmentName) {
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${update.attachmentName}"`,
+      );
+    }
     body.pipe(res);
+  }
+
+  static isImageType(mimeType: string | null | undefined): boolean {
+    return !!mimeType && IMAGE_TYPES.has(mimeType);
   }
 }

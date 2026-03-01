@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Plus, Trash2, Receipt } from "lucide-react";
+import { Plus, Trash2, Receipt, Download } from "lucide-react";
 
 interface LineItem {
   id?: string;
@@ -214,6 +214,27 @@ export function InvoicesSection({
       success("Invoice deleted");
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to delete invoice");
+    }
+  };
+
+  const handleDownloadPdf = async (invoiceId: string, invoiceNumber: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/invoices/${invoiceId}/pdf`,
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to download PDF");
     }
   };
 
@@ -441,6 +462,13 @@ export function InvoicesSection({
                           Mark as Paid
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                        className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+                      >
+                        <Download size={12} />
+                        PDF
+                      </button>
                       {isDraft && !isArchived && !isEditing && (
                         <button
                           onClick={() => startEditing(inv)}

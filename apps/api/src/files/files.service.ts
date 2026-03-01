@@ -90,6 +90,30 @@ export class FilesService {
     });
   }
 
+  async uploadAsClient(
+    file: UploadedFile,
+    projectId: string,
+    organizationId: string,
+    userId: string,
+  ) {
+    // Verify client is assigned to this project
+    const assignment = await this.prisma.projectClient.findFirst({
+      where: { projectId, userId },
+    });
+    if (!assignment) {
+      throw new ForbiddenException("You are not assigned to this project");
+    }
+
+    // Verify project belongs to org and is not archived
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, organizationId, archivedAt: null },
+    });
+    if (!project) throw new NotFoundException("Project not found");
+
+    // Reuse the same upload logic
+    return this.upload(file, projectId, organizationId, userId);
+  }
+
   async findByProject(
     projectId: string,
     organizationId: string,

@@ -2,21 +2,18 @@
 
 **A self-hosted client portal for agencies and freelancers.**
 
-Created by [@ecotto123](https://github.com/ecotto123) -- I'm starting a company and building products along the way. When I create something I think others would benefit from, I share it here.
+[Website](https://atrium.vibralabs.co) | [Documentation](docs/configuration.md) | [GitHub Issues](https://github.com/Vibra-Labs/Atrium/issues)
+
+Created by [@ecotto123](https://github.com/ecotto123) -- Built out of frustration with the tools I was using to manage client work.
 
 [![License: ELv2](https://img.shields.io/badge/License-ELv2-blue.svg)](https://www.elastic.co/licensing/elastic-license)
 
-> **Note:** Atrium is licensed under the [Elastic License 2.0](LICENSE), which is source-available but not OSI-approved open source. You can self-host and modify it freely, but you cannot offer it as a managed service to third parties.
 
 ## Why Atrium?
 
 Most agencies juggle shared drives, spreadsheets, and scattered emails to keep clients in the loop. Atrium replaces all of that with a single branded portal your clients can log into -- no more "can you resend that file?" emails. Unlike managed SaaS platforms, you own the data and host it yourself.
 
-## Screenshots
-
-<!-- Add screenshots of the dashboard and client portal here -->
-<!-- ![Dashboard](docs/screenshots/dashboard.png) -->
-<!-- ![Client Portal](docs/screenshots/portal.png) -->
+![alt text](public/dashboard.png)
 
 ## Features
 

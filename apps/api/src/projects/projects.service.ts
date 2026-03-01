@@ -100,10 +100,12 @@ export class ProjectsService {
   }
 
   async create(data: CreateProjectDto, organizationId: string) {
-    const { clientUserIds, ...rest } = data;
+    const { clientUserIds, startDate, endDate, ...rest } = data;
     return this.prisma.project.create({
       data: {
         ...rest,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
         organizationId,
         ...(clientUserIds?.length
           ? {
@@ -126,7 +128,10 @@ export class ProjectsService {
       throw new BadRequestException("Cannot update an archived project");
     }
 
-    const { clientUserIds, ...rest } = data;
+    const { clientUserIds, startDate, endDate, ...rest } = data;
+    const dateFields: any = {};
+    if (startDate !== undefined) dateFields.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) dateFields.endDate = endDate ? new Date(endDate) : null;
 
     if (rest.status) {
       const validStatus = await this.prisma.projectStatus.findFirst({
@@ -145,6 +150,7 @@ export class ProjectsService {
           where: { id },
           data: {
             ...rest,
+            ...dateFields,
             clients: {
               create: clientUserIds.map((userId) => ({ userId })),
             },
@@ -157,7 +163,7 @@ export class ProjectsService {
 
     const result = await this.prisma.project.updateMany({
       where: { id, organizationId },
-      data: rest,
+      data: { ...rest, ...dateFields },
     });
     if (result.count === 0) throw new NotFoundException("Project not found");
     return this.prisma.project.findUnique({

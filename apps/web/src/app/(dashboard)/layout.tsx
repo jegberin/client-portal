@@ -4,13 +4,14 @@ import { SignOutButton } from "./sign-out-button";
 import { SidebarNav } from "./sidebar-nav";
 import { EmailVerificationBanner } from "./email-verification-banner";
 
+const API_URL = process.env.API_URL || "http://localhost:3001";
+
 async function getSessionWithRole() {
   try {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
-    const apiUrl = process.env.API_URL || "http://localhost:3001";
 
-    const res = await fetch(`${apiUrl}/api/auth/get-session`, {
+    const res = await fetch(`${API_URL}/api/auth/get-session`, {
       headers: { Cookie: cookieHeader },
       cache: "no-store",
     });
@@ -20,7 +21,7 @@ async function getSessionWithRole() {
 
     // Get the user's role in the active org
     const memberRes = await fetch(
-      `${apiUrl}/api/auth/organization/get-active-member`,
+      `${API_URL}/api/auth/organization/get-active-member`,
       {
         headers: { Cookie: cookieHeader },
         cache: "no-store",
@@ -34,14 +35,50 @@ async function getSessionWithRole() {
   }
 }
 
+async function getBranding() {
+  try {
+    const cookieStore = await cookies();
+    const res = await fetch(`${API_URL}/api/branding`, {
+      headers: { Cookie: cookieStore.toString() },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function getOrgName() {
+  try {
+    const cookieStore = await cookies();
+    const res = await fetch(
+      `${API_URL}/api/auth/organization/get-full-organization`,
+      {
+        headers: { Cookie: cookieStore.toString() },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) return null;
+    const org = await res.json();
+    return org?.name || null;
+  } catch {
+    return null;
+  }
+}
+
+function getLogoSrc(branding: { logoKey?: string; logoUrl?: string; organizationId?: string } | null) {
+  if (!branding) return null;
+  if (branding.logoKey) return `${API_URL}/api/branding/logo/${branding.organizationId}`;
+  if (branding.logoUrl) return branding.logoUrl;
+  return null;
+}
+
 async function getSetupStatus() {
   try {
     const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
-    const apiUrl = process.env.API_URL || "http://localhost:3001";
-
-    const res = await fetch(`${apiUrl}/api/setup/status`, {
-      headers: { Cookie: cookieHeader },
+    const res = await fetch(`${API_URL}/api/setup/status`, {
+      headers: { Cookie: cookieStore.toString() },
       cache: "no-store",
     });
     if (!res.ok) return null;
@@ -56,7 +93,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSessionWithRole();
+  const [session, branding, orgName] = await Promise.all([
+    getSessionWithRole(),
+    getBranding(),
+    getOrgName(),
+  ]);
 
   if (!session) {
     redirect("/login");
@@ -75,10 +116,20 @@ export default async function DashboardLayout({
     }
   }
 
+  const logoSrc = getLogoSrc(branding);
+
   return (
     <div className="min-h-screen flex">
       <aside className="w-64 border-r border-[var(--border)] p-4 flex flex-col">
-        <div className="font-bold text-lg mb-6">Atrium</div>
+        <div className="flex items-center gap-2.5 mb-6">
+          {logoSrc && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoSrc} alt="" className="h-7 w-auto shrink-0" />
+          )}
+          <span className="font-bold text-lg leading-tight truncate">
+            {orgName || "Atrium"}
+          </span>
+        </div>
         <SidebarNav />
         <SignOutButton />
       </aside>

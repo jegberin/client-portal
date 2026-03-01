@@ -34,6 +34,18 @@ export class FilesController {
     return this.filesService.upload(file, projectId, orgId, userId);
   }
 
+  @Post("upload/mine")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 200 * 1024 * 1024 } }))
+  uploadMine(
+    @UploadedFile() file: UploadedFileType,
+    @Query("projectId") projectId: string,
+    @CurrentOrg("id") orgId: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    if (!file) throw new BadRequestException("No file provided");
+    return this.filesService.uploadAsClient(file, projectId, orgId, userId);
+  }
+
   @Get("project/:projectId")
   findByProject(
     @Param("projectId") projectId: string,

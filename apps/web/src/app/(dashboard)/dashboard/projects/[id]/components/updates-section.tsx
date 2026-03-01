@@ -6,13 +6,39 @@ import { formatRelativeTime } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Trash2, Plus, MessageSquare } from "lucide-react";
+import { Trash2, Plus, MessageSquare, Paperclip, FileText, Download } from "lucide-react";
+
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+
+function linkify(text: string) {
+  const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (urlRegex.test(part)) {
+      const href = part.startsWith("http") ? part : `https://${part}`;
+      return (
+        <a
+          key={i}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[var(--primary)] underline break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
 
 interface ProjectUpdateRecord {
   id: string;
   content: string;
-  imageUrl?: string;
-  hasImage: boolean;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentMimeType?: string;
+  hasAttachment: boolean;
   author: { id: string; name: string };
   createdAt: string;
 }
@@ -35,7 +61,7 @@ export function UpdatesSection({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [newContent, setNewContent] = useState("");
-  const [newImage, setNewImage] = useState<File | null>(null);
+  const [newAttachment, setNewAttachment] = useState<File | null>(null);
   const [posting, setPosting] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
 
@@ -60,23 +86,20 @@ export function UpdatesSection({
     try {
       const formData = new FormData();
       formData.append("content", newContent);
-      if (newImage) {
-        formData.append("image", newImage);
+      if (newAttachment) {
+        formData.append("attachment", newAttachment);
       }
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/updates?projectId=${projectId}`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        },
-      );
+      await apiFetch(`/updates?projectId=${projectId}`, {
+        method: "POST",
+        body: formData,
+      });
       setNewContent("");
-      setNewImage(null);
+      setNewAttachment(null);
       setShowCompose(false);
       loadUpdates();
+      success("Update posted");
     } catch (err) {
-      console.error(err);
+      showError(err instanceof Error ? err.message : "Failed to post update");
     } finally {
       setPosting(false);
     }
@@ -120,7 +143,7 @@ export function UpdatesSection({
             if (e.target === e.currentTarget) {
               setShowCompose(false);
               setNewContent("");
-              setNewImage(null);
+              setNewAttachment(null);
             }
           }}
         >
@@ -136,21 +159,21 @@ export function UpdatesSection({
               className="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm resize-none outline-none focus:ring-1 focus:ring-[var(--primary)]"
             />
             <div className="flex items-center gap-2">
-              <label className="px-3 py-1.5 border border-[var(--border)] rounded-lg text-sm cursor-pointer hover:bg-[var(--muted)] transition-colors">
-                Attach Image
+              <label className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] rounded-lg text-sm cursor-pointer hover:bg-[var(--muted)] transition-colors">
+                <Paperclip size={14} />
+                Attach File
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
                   className="hidden"
-                  onChange={(e) => setNewImage(e.target.files?.[0] ?? null)}
+                  onChange={(e) => setNewAttachment(e.target.files?.[0] ?? null)}
                 />
               </label>
-              {newImage && (
+              {newAttachment && (
                 <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-                  {newImage.name}
+                  {newAttachment.name}
                   <button
                     type="button"
-                    onClick={() => setNewImage(null)}
+                    onClick={() => setNewAttachment(null)}
                     className="hover:text-red-500"
                   >
                     &times;
@@ -163,7 +186,7 @@ export function UpdatesSection({
                 onClick={() => {
                   setShowCompose(false);
                   setNewContent("");
-                  setNewImage(null);
+                  setNewAttachment(null);
                 }}
                 className="px-4 py-1.5 border border-[var(--border)] rounded-lg text-sm hover:bg-[var(--muted)] transition-colors"
               >
@@ -184,6 +207,7 @@ export function UpdatesSection({
       <div className="space-y-3">
         {updates.map((update) => {
           const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+          const isImage = IMAGE_TYPES.has(update.attachmentMimeType || "");
           return (
             <div
               key={update.id}
@@ -206,13 +230,25 @@ export function UpdatesSection({
                   </button>
                 )}
               </div>
-              <p className="text-sm whitespace-pre-wrap">{update.content}</p>
-              {update.hasImage && (
+              <p className="text-sm whitespace-pre-wrap">{linkify(update.content)}</p>
+              {update.hasAttachment && isImage && (
                 <img
-                  src={update.imageUrl || `${API_URL}/api/updates/${update.id}/image`}
+                  src={update.attachmentUrl || `${API_URL}/api/updates/${update.id}/attachment`}
                   alt=""
                   className="mt-3 max-w-full max-h-80 rounded-lg border border-[var(--border)]"
                 />
+              )}
+              {update.hasAttachment && !isImage && (
+                <a
+                  href={update.attachmentUrl || `${API_URL}/api/updates/${update.id}/attachment`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center gap-2 px-3 py-2 border border-[var(--border)] rounded-lg text-sm hover:bg-[var(--muted)] transition-colors w-fit"
+                >
+                  <FileText size={16} className="text-[var(--muted-foreground)] shrink-0" />
+                  <span className="truncate max-w-[200px]">{update.attachmentName || "Download"}</span>
+                  <Download size={14} className="text-[var(--muted-foreground)] shrink-0" />
+                </a>
               )}
             </div>
           );
