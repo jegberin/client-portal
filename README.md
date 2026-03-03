@@ -4,7 +4,7 @@
 
 [Website](https://atrium.vibralabs.co) | [Documentation](docs/configuration.md) | [GitHub Issues](https://github.com/Vibra-Labs/Atrium/issues)
 
-Created by [@ecotto123](https://github.com/ecotto123) -- Built out of frustration with the tools I was using to manage client work.
+Created by [@edgarjc](https://github.com/edgarjc) -- Built out of frustration with the tools I was using to manage client work.
 
 [![License: ELv2](https://img.shields.io/badge/License-ELv2-blue.svg)](https://www.elastic.co/licensing/elastic-license)
 
