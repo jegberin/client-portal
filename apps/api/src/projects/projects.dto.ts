@@ -13,6 +13,7 @@ export class CreateProjectDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   status?: string;
 
   @IsDateString()
@@ -39,6 +40,7 @@ export class ClientProjectListQueryDto extends PaginationQueryDto {
 export class ProjectListQueryDto extends ClientProjectListQueryDto {
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   status?: string;
 
   @IsString()
@@ -59,6 +61,7 @@ export class UpdateProjectDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   status?: string;
 
   @IsDateString()

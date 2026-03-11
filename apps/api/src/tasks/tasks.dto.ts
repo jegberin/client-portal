@@ -6,16 +6,19 @@ import {
   IsDateString,
   IsArray,
   ArrayMaxSize,
+  MaxLength,
   ValidateIf,
 } from "class-validator";
 
 export class CreateTaskDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
   title!: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(5000)
   description?: string;
 
   @IsDateString()
@@ -26,10 +29,12 @@ export class CreateTaskDto {
 export class UpdateTaskDto {
   @IsString()
   @IsOptional()
+  @MaxLength(255)
   title?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(5000)
   description?: string;
 
   @ValidateIf((o) => o.dueDate !== null)
