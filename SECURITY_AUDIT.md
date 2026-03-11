@@ -48,7 +48,7 @@ private getFilePath(key: string): string {
 
 ---
 
-### MEDIUM — 6 Findings
+### MEDIUM — 8 Findings
 
 #### M1: Unbounded In-Memory Session Cache
 
@@ -103,6 +103,30 @@ Default PostgreSQL password (`atrium`) and a placeholder `BETTER_AUTH_SECRET` va
 - Documentation warns about changing credentials
 
 **Recommendation:** Reference `.env` files from Docker Compose rather than hardcoding defaults: `${POSTGRES_PASSWORD:-atrium}`.
+
+#### M7: Missing `@MaxLength()` on Task DTOs
+
+**File:** `apps/api/src/tasks/tasks.dto.ts:13-19,26-33`
+
+The `CreateTaskDto` and `UpdateTaskDto` have `@IsString()` and `@IsNotEmpty()` / `@IsOptional()` on `title` and `description` fields but no `@MaxLength()` constraint. An authenticated user could submit arbitrarily large strings, causing database bloat or potential DoS.
+
+**Mitigating factors:**
+- Requires authentication (owner/admin/member role)
+- PostgreSQL has no implicit column length limit on `String` type, but Prisma/Postgres will handle very large values
+
+**Recommendation:** Add `@MaxLength(255)` to `title` and `@MaxLength(5000)` to `description` in both DTOs.
+
+#### M8: Project `status` Field Lacks Enum Validation
+
+**File:** `apps/api/src/projects/projects.dto.ts:16,42,62`
+
+The `status` field in `CreateProjectDto`, `UpdateProjectDto`, and `ProjectListQueryDto` uses only `@IsString()` with no `@IsIn()` or enum constraint. Any arbitrary string can be set as a project status.
+
+**Mitigating factors:**
+- The project service validates status against organization-specific `ProjectStatus` records in the database (`projects.service.ts`)
+- Invalid statuses would not match any status record
+
+**Recommendation:** Add DTO-level validation with `@IsOptional() @IsString() @MaxLength(100)` at minimum. Consider validating against allowed status values at the service layer (which may already be done).
 
 #### M6: Updates Endpoint Lacks File Extension Blocking
 
@@ -233,15 +257,17 @@ The `COPY . .` in the build stage copies the entire project context. Verify a `.
 ## Recommendations Summary (Priority Order)
 
 1. **[HIGH]** Add path traversal check in `LocalStorage.getFilePath()`
-2. **[MEDIUM]** Apply `BLOCKED_EXTENSIONS` check to updates attachment uploads
-3. **[MEDIUM]** Bound session cache size with LRU eviction
-4. **[MEDIUM]** Bind CSRF tokens to sessions cryptographically
-5. **[MEDIUM]** Restrict `trust proxy` to specific depth
-6. **[MEDIUM]** Rate-limit health endpoint instead of skipping throttle
-7. **[MEDIUM]** Parameterize Docker Compose credentials via env vars
-8. **[LOW]** Add security headers to Caddyfile (HSTS, X-Content-Type-Options, etc.)
-9. **[LOW]** Remove PostgreSQL port exposure from production Docker Compose
-10. **[LOW]** Add magic byte validation for file uploads
-11. **[LOW]** Derive logo extension from MIME type
-12. **[LOW]** Add `@Public()` to health endpoint for consistency
-13. **[LOW]** Evaluate CSP nonce-based inline styles
+2. **[MEDIUM]** Add `@MaxLength()` to task DTO `title` and `description` fields
+3. **[MEDIUM]** Add `@MaxLength()` to project `status` fields in DTOs
+4. **[MEDIUM]** Apply `BLOCKED_EXTENSIONS` check to updates attachment uploads
+5. **[MEDIUM]** Bound session cache size with LRU eviction
+6. **[MEDIUM]** Bind CSRF tokens to sessions cryptographically
+7. **[MEDIUM]** Restrict `trust proxy` to specific depth
+8. **[MEDIUM]** Rate-limit health endpoint instead of skipping throttle
+9. **[MEDIUM]** Parameterize Docker Compose credentials via env vars
+10. **[LOW]** Add security headers to Caddyfile (HSTS, X-Content-Type-Options, etc.)
+11. **[LOW]** Remove PostgreSQL port exposure from production Docker Compose
+12. **[LOW]** Add magic byte validation for file uploads
+13. **[LOW]** Derive logo extension from MIME type
+14. **[LOW]** Add `@Public()` to health endpoint for consistency
+15. **[LOW]** Evaluate CSP nonce-based inline styles
