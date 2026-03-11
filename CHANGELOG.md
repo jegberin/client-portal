@@ -2,6 +2,26 @@
 
 All notable changes to Atrium will be documented in this file.
 
+## [1.2.0] — 2026-03-10
+
+### Added
+
+#### Docker
+- Built-in PostgreSQL 16 bundled in the unified Docker image — no separate database container needed
+- `USE_BUILT_IN_DB` toggle: set to `false` with a `DATABASE_URL` to use an external database
+- Graceful shutdown of built-in PostgreSQL on container stop
+- Docker Hub overview with quick start, Compose examples, and env var reference
+- `scripts/update-dockerhub-readme.sh` to push Docker Hub description from `docker/DOCKERHUB.md`
+- Docker deployment documentation (`docs/docker.md`)
+
+#### Unraid
+- Unraid Community Applications template with single-container setup
+- Template repo at `Vibra-Labs/unraid-templates` linked as git submodule
+- PR submitted to `selfhosters/unRAID-CA-templates` for CA listing
+
+### Fixed
+- Dockerfile missing `ca-certificates` package broke PostgreSQL apt repo setup
+
 ## [1.1.0] — 2026-03-09
 
 ### Added
