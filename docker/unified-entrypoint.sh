@@ -12,6 +12,14 @@ else
   MIGRATION_URL="${DIRECT_URL:-$DATABASE_URL}"
   DATABASE_URL="$MIGRATION_URL" ./packages/database/node_modules/.bin/prisma db push --schema=./packages/database/prisma/schema.prisma --skip-generate
   echo "Database schema synced."
+
+  # Apply Row Level Security (locks out Supabase anon/authenticated roles)
+  # Only needed when using Supabase — set SUPABASE=true to activate
+  if [ "${SUPABASE}" = "true" ]; then
+    echo "Applying Row Level Security..."
+    DATABASE_URL="$MIGRATION_URL" bun run ./packages/database/scripts/apply-rls.ts
+    echo "RLS applied."
+  fi
 fi
 
 # Start NestJS API in background

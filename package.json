@@ -17,6 +17,7 @@
     "db:migrate": "bun run --filter @atrium/database db:migrate",
     "db:migrate:deploy": "bun run --filter @atrium/database db:migrate:deploy",
     "db:seed": "bun run --filter @atrium/database db:seed",
+    "db:rls": "bun run --filter @atrium/database db:rls",
     "clean": "turbo run clean",
     "setup": "bun run scripts/setup.ts"
   },
