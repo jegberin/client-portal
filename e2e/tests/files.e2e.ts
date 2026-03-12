@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { getCsrfToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
@@ -40,14 +41,17 @@ test.describe("Files", () => {
     }
   });
 
-  test("file upload rejects when no file selected", async ({ page }) => {
+  test("file upload rejects when no file selected", async ({ page, context }) => {
     // This tests the API-level validation
+    const cookies = await context.cookies();
+    const csrfToken = cookies.find((c) => c.name === "csrf-token")?.value || "";
     const response = await page.request.post(
       "http://localhost:3001/api/files/upload?projectId=nonexistent",
       {
         multipart: {
           // Send empty multipart request without a file
         },
+        headers: { "x-csrf-token": csrfToken },
       },
     );
 
@@ -99,12 +103,14 @@ test.describe("Files", () => {
       `--${boundary}--`,
     ].join("\r\n");
 
+    const csrfToken = getCsrfToken();
     const updateRes = await request.post(
       `${API}/updates?projectId=${projectId}`,
       {
         data: body,
         headers: {
           "Content-Type": `multipart/form-data; boundary=${boundary}`,
+          "x-csrf-token": csrfToken,
         },
       },
     );

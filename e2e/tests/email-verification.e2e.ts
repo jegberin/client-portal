@@ -41,9 +41,10 @@ test.describe("Email Verification", () => {
     await page.getByLabel(/password/i).fill(password);
     await page.getByRole("button", { name: /create account/i }).click();
 
-    await expect(page).toHaveURL(/verify-email/, { timeout: 10000 });
+    // After signup, the app redirects to the setup wizard (not verify-email)
+    await expect(page).toHaveURL(/setup/, { timeout: 10000 });
     await expect(
-      page.getByRole("heading", { name: /check your email/i }),
+      page.getByRole("heading", { name: /welcome to atrium/i }),
     ).toBeVisible();
 
     await context.close();

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { getCsrfToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
@@ -15,8 +16,10 @@ test.describe("Notifications", () => {
   let projectId: string;
 
   test.beforeAll(async ({ request }) => {
+    const csrfToken = getCsrfToken();
     const res = await request.post(`${API}/projects`, {
       data: { name: "Notification Test Project" },
+      headers: { "x-csrf-token": csrfToken },
     });
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
@@ -28,12 +31,14 @@ test.describe("Notifications", () => {
       request,
     }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       const res = await request.post(
         `${API}/updates?projectId=${projectId}`,
         {
           multipart: {
             content: "This update should trigger a notification email",
           },
+          headers: { "x-csrf-token": csrfToken },
         },
       );
       expect(res.status()).toBe(201);
@@ -49,10 +54,12 @@ test.describe("Notifications", () => {
       request,
     }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       const res = await request.post(
         `${API}/tasks?projectId=${projectId}`,
         {
           data: { title: "Notification Test Task" },
+          headers: { "x-csrf-token": csrfToken },
         },
       );
       expect(res.status()).toBe(201);
@@ -64,6 +71,7 @@ test.describe("Notifications", () => {
       request,
     }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       const res = await request.post(
         `${API}/tasks?projectId=${projectId}`,
         {
@@ -71,6 +79,7 @@ test.describe("Notifications", () => {
             title: "Task With Due Date",
             dueDate: "2026-12-31",
           },
+          headers: { "x-csrf-token": csrfToken },
         },
       );
       expect(res.status()).toBe(201);
@@ -87,6 +96,7 @@ test.describe("Notifications", () => {
       test.skip(!projectId, "No project available");
 
       // Create an invoice linked to the project
+      const csrfToken = getCsrfToken();
       const createRes = await request.post(`${API}/invoices`, {
         data: {
           projectId,
@@ -94,6 +104,7 @@ test.describe("Notifications", () => {
             { description: "Notification test service", quantity: 1, unitPrice: 5000 },
           ],
         },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(createRes.status()).toBe(201);
       const invoice = await createRes.json();
@@ -102,6 +113,7 @@ test.describe("Notifications", () => {
       // Transition to sent
       const updateRes = await request.put(`${API}/invoices/${invoice.id}`, {
         data: { status: "sent" },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(updateRes.ok()).toBeTruthy();
       const updated = await updateRes.json();
@@ -113,6 +125,7 @@ test.describe("Notifications", () => {
     }) => {
       test.skip(!projectId, "No project available");
 
+      const csrfToken = getCsrfToken();
       const createRes = await request.post(`${API}/invoices`, {
         data: {
           projectId,
@@ -120,6 +133,7 @@ test.describe("Notifications", () => {
             { description: "No notification item", quantity: 2, unitPrice: 2500 },
           ],
         },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(createRes.status()).toBe(201);
       const invoice = await createRes.json();
@@ -127,6 +141,7 @@ test.describe("Notifications", () => {
       // Update notes without changing status to sent
       const updateRes = await request.put(`${API}/invoices/${invoice.id}`, {
         data: { notes: "Updated notes" },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(updateRes.ok()).toBeTruthy();
       const updated = await updateRes.json();

@@ -9,7 +9,7 @@ export class StripeService {
 
   constructor(private config: ConfigService) {
     this.mode = this.config.get("STRIPE_MODE", "test") === "live" ? "live" : "test";
-    const secretKey = this.resolveKey("SECRET_KEY");
+    const secretKey = this.resolveKey("SECRET_KEY") || "sk_test_placeholder";
     this.stripe = new Stripe(secretKey);
   }
 

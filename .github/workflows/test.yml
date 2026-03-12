@@ -24,7 +24,9 @@ jobs:
           --health-retries 5
 
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       DATABASE_URL: postgresql://atrium:atrium@localhost:5432/atrium?schema=public
+      DIRECT_URL: postgresql://atrium:atrium@localhost:5432/atrium?schema=public
       BETTER_AUTH_SECRET: ci-test-secret-that-is-at-least-32-chars
       BETTER_AUTH_URL: http://localhost:3001
       API_URL: http://localhost:3001
@@ -34,7 +36,7 @@ jobs:
       UPLOAD_DIR: ./uploads
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -47,3 +49,24 @@ jobs:
       - run: bun run build
 
       - run: bun run test
+
+      # E2E tests with Playwright
+      - run: bun run db:push
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: bunx playwright test --config=e2e/playwright.config.ts
+        env:
+          CI: "true"
+          THROTTLE_LIMIT: "10000"
+          SIGNUP_THROTTLE_LIMIT: "100"
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

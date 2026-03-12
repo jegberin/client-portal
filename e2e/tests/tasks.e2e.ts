@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { getCsrfToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
@@ -29,8 +30,10 @@ test.describe("Tasks", () => {
 
     test.beforeAll(async ({ request }) => {
       // Create a project for task tests
+      const csrfToken = getCsrfToken();
       const res = await request.post(`${API}/projects`, {
         data: { name: "Task Test Project" },
+        headers: { "x-csrf-token": csrfToken },
       });
       if (res.ok()) {
         const body = await res.json();
@@ -40,8 +43,10 @@ test.describe("Tasks", () => {
 
     test("create task via API", async ({ request }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       const res = await request.post(`${API}/tasks?projectId=${projectId}`, {
         data: { title: "E2E Test Task" },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(res.status()).toBe(201);
       const body = await res.json();
@@ -59,14 +64,17 @@ test.describe("Tasks", () => {
 
     test("update task via API", async ({ request }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       // Create a task first
       const createRes = await request.post(`${API}/tasks?projectId=${projectId}`, {
         data: { title: "Task to Update" },
+        headers: { "x-csrf-token": csrfToken },
       });
       const task = await createRes.json();
 
       const res = await request.put(`${API}/tasks/${task.id}`, {
         data: { completed: true },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(res.ok()).toBeTruthy();
       const body = await res.json();
@@ -75,12 +83,16 @@ test.describe("Tasks", () => {
 
     test("delete task via API", async ({ request }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       const createRes = await request.post(`${API}/tasks?projectId=${projectId}`, {
         data: { title: "Task to Delete" },
+        headers: { "x-csrf-token": csrfToken },
       });
       const task = await createRes.json();
 
-      const res = await request.delete(`${API}/tasks/${task.id}`);
+      const res = await request.delete(`${API}/tasks/${task.id}`, {
+        headers: { "x-csrf-token": csrfToken },
+      });
       expect(res.ok()).toBeTruthy();
     });
   });

@@ -21,6 +21,12 @@ interface StepOrgProfileProps {
 
 export function StepOrgProfile({ orgName, onNext }: StepOrgProfileProps) {
   const [name, setName] = useState(orgName);
+
+  // Sync local state when the parent finishes loading the org name
+  useEffect(() => {
+    if (orgName) setName(orgName);
+  }, [orgName]);
+
   const [branding, setBranding] = useState<Branding>({
     primaryColor: "#006b68",
     accentColor: "#ff6b5c",

@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/toast";
+import { useConfirm } from "@/components/confirm-modal";
 import { BillingSection } from "../billing/billing-section";
+import type { DeletionInfo } from "@atrium/shared";
 
 const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === "true";
 
@@ -13,6 +15,7 @@ type Tab = "profile" | "billing";
 export default function AccountSettingsPage() {
   const searchParams = useSearchParams();
   const { success, error: showError } = useToast();
+  const confirm = useConfirm();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -23,6 +26,9 @@ export default function AccountSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletionInfo, setDeletionInfo] = useState<DeletionInfo | null>(null);
 
   useEffect(() => {
     apiFetch<{ user: { name: string } }>("/auth/get-session")
@@ -31,6 +37,10 @@ export default function AccountSettingsPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    apiFetch<DeletionInfo>("/account/deletion-info")
+      .then(setDeletionInfo)
+      .catch(() => {});
   }, []);
 
   // Sync tab with URL param changes
@@ -88,7 +98,50 @@ export default function AccountSettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      showError("Enter your password to confirm account deletion.");
+      return;
+    }
+
+    const orgsToDelete = deletionInfo?.ownedOrganizations.filter((o) => o.isSoleOwner) || [];
+    const orgName = orgsToDelete[0]?.name;
+
+    const message = orgName
+      ? `This will permanently delete your account and your organization "${orgName}" including all its projects, files, invoices, and client access. This action cannot be undone.`
+      : "This will permanently delete your account and all associated data. This action cannot be undone.";
+
+    const confirmText = orgName ? `DELETE ${orgName}` : "DELETE";
+
+    const confirmed = await confirm({
+      title: "Delete Account",
+      message,
+      confirmLabel: "Delete Account",
+      confirmText,
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      await apiFetch("/account", {
+        method: "DELETE",
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      window.location.href = "/login";
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : "Failed to delete account",
+      );
+      setDeletePassword("");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
+
+  const isOwner = deletionInfo !== null && deletionInfo.ownedOrganizations.length > 0;
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "profile", label: "Profile" },
@@ -197,6 +250,35 @@ export default function AccountSettingsPage() {
                 Change Password
               </button>
             </form>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="max-w-md border border-red-300 rounded-lg p-4 space-y-3">
+            <h2 className="text-sm font-medium text-red-600">Danger Zone</h2>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              {isOwner
+                ? "Permanently delete your account and your organization. All projects, files, invoices, and client access will be removed."
+                : "Permanently delete your account. You will be removed from this organization and lose access to all projects."}
+            </p>
+              <div>
+                <label className="text-sm text-[var(--muted-foreground)]">
+                  Enter your password to confirm
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your current password"
+                  className="w-full mt-1 px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
+                />
+              </div>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting || !deletePassword}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete Account"}
+              </button>
           </div>
         </div>
       )}

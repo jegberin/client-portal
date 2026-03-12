@@ -11,10 +11,16 @@ import type { StorageProvider } from "../files/storage/storage.interface";
 import { STORAGE_PROVIDER } from "../files/storage/storage.interface";
 import type { UploadedFile } from "../files/files.service";
 import { randomUUID } from "crypto";
+import { extname } from "path";
 import type { Response } from "express";
 import { paginationArgs, paginatedResponse, sanitizeFilename, contentDisposition, assertProjectAccess } from "../common";
 
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB
+
+const BLOCKED_EXTENSIONS = new Set([
+  ".exe", ".sh", ".bat", ".cmd", ".com", ".msi", ".ps1",
+  ".scr", ".pif", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh",
+]);
 
 const IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -51,6 +57,11 @@ export class UpdatesService {
     if (attachment) {
       if (attachment.size > MAX_ATTACHMENT_SIZE) {
         throw new BadRequestException("Attachment must be under 10MB");
+      }
+
+      const ext = extname(attachment.originalname).toLowerCase();
+      if (BLOCKED_EXTENSIONS.has(ext)) {
+        throw new BadRequestException(`File type "${ext}" is not allowed`);
       }
 
       const safeName = sanitizeFilename(attachment.originalname);

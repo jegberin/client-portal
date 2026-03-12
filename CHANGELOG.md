@@ -2,6 +2,64 @@
 
 All notable changes to Atrium will be documented in this file.
 
+## [1.2.0] — 2026-03-11
+
+### Added
+
+#### Account Deletion
+- Owners can delete their account and cascade-delete their organization (projects, files, invoices, clients)
+- Password re-authentication required before deletion
+- Type-to-confirm dialog requiring `DELETE <org name>`
+- `GET /api/account/deletion-info` preflight endpoint returns org ownership context
+- Clients (non-owners) can delete their own account from portal settings
+- E2E tests for deletion flow, credential invalidation, and non-owner visibility
+
+#### Supabase Row Level Security
+- `enable-rls.sql` enables RLS on all 21 tables and revokes `anon`/`authenticated` access
+- `bun run db:rls` command to apply manually
+- Docker entrypoints apply RLS automatically when `SUPABASE=true`
+- Safe for plain Postgres — gated behind env var, skipped by default
+
+#### Docker
+- Built-in PostgreSQL 16 bundled in the unified Docker image — no separate database container needed
+- `USE_BUILT_IN_DB` toggle: set to `false` with a `DATABASE_URL` to use an external database
+- Graceful shutdown of built-in PostgreSQL on container stop
+- Docker Hub overview with quick start, Compose examples, and env var reference
+- `scripts/update-dockerhub-readme.sh` to push Docker Hub description from `docker/DOCKERHUB.md`
+- Docker deployment documentation (`docs/docker.md`)
+
+#### Unraid
+- Unraid Community Applications template with single-container setup
+- Template repo at `Vibra-Labs/unraid-templates` linked as git submodule
+- PR submitted to `selfhosters/unRAID-CA-templates` for CA listing
+
+#### Invitations
+- Accept-invite auto-login when a user signs up with an already-existing account
+- Accept-invite sets active organization before redirect
+
+#### UX
+- Portal `/portal` redirects to `/portal/projects`
+- Danger zone section visible to all dashboard users (owners and non-owners)
+
+### Security
+- Comprehensive security audit with findings documented in `SECURITY_AUDIT.md`
+- DTO validation added for project and task inputs (`@IsDateString`, `@MaxLength`)
+- Path traversal protection in local file storage (reject `..` in keys)
+- Branding logo upload restricted to image MIME types
+- Update attachment size validated against system settings before storage
+- Caddyfile hardened with `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` headers
+- PostgreSQL port no longer exposed to host in production `docker-compose.yml`
+- Generic password verification error message to prevent user enumeration
+- `DELETED_USER_SENTINEL` constant in shared package for anonymized user references
+
+### Changed
+- Deploy workflow now only pushes to Docker Hub (removed Google Cloud Run and Firebase Hosting steps)
+- Shared `setActiveOrgAndRedirect` helper replaces duplicated org-switch-and-redirect logic
+- Organization deletion now purges file blobs from storage provider (not just DB records)
+
+### Fixed
+- Dockerfile missing `ca-certificates` package broke PostgreSQL apt repo setup
+
 ## [1.1.0] — 2026-03-09
 
 ### Added

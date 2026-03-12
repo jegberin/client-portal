@@ -21,7 +21,6 @@ import { AuthGuard, RolesGuard, Roles, CurrentOrg, Public } from "../common";
 import type { StorageProvider } from "../files/storage/storage.interface";
 import { STORAGE_PROVIDER } from "../files/storage/storage.interface";
 import { randomUUID } from "crypto";
-import { extname } from "path";
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/png",
@@ -76,7 +75,13 @@ export class BrandingController {
       await this.storage.delete(existing.logoKey).catch(() => {});
     }
 
-    const ext = extname(file.originalname).toLowerCase() || ".png";
+    const MIME_TO_EXT: Record<string, string> = {
+      "image/png": ".png",
+      "image/jpeg": ".jpg",
+      "image/gif": ".gif",
+      "image/webp": ".webp",
+    };
+    const ext = MIME_TO_EXT[file.mimetype] || ".png";
     const storageKey = `branding/${orgId}/logo-${randomUUID()}${ext}`;
 
     await this.storage.upload(storageKey, file.buffer, file.mimetype);

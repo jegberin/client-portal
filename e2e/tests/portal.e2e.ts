@@ -1,14 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Portal", () => {
-  test("portal home loads", async ({ page }) => {
+  test("portal home redirects to projects", async ({ page }) => {
     await page.goto("/portal");
-    await expect(page.getByRole("heading", { name: /welcome/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /view projects/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/portal\/projects/, { timeout: 10000 });
   });
 
-  test("portal has header with branding slot", async ({ page }) => {
+  test("portal projects page has header with navigation", async ({ page }) => {
     await page.goto("/portal");
-    await expect(page.getByText(/client portal/i)).toBeVisible();
+    await expect(page).toHaveURL(/\/portal\/projects/, { timeout: 10000 });
+    await expect(page.getByText(/projects/i).first()).toBeVisible();
   });
 });

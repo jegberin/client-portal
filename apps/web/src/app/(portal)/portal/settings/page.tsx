@@ -26,6 +26,10 @@ export default function PortalSettingsPage() {
   const [profile, setProfile] = useState<ClientProfile>({});
   const [profileLoading, setProfileLoading] = useState(true);
 
+  // Delete account
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   useEffect(() => {
     apiFetch<{ user: { name: string } }>("/auth/get-session")
       .then((session) => {
@@ -79,6 +83,29 @@ export default function PortalSettingsPage() {
       showError(
         err instanceof Error ? err.message : "Failed to change password",
       );
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      showError("Please enter your password");
+      return;
+    }
+    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      return;
+    }
+    setDeleteLoading(true);
+    try {
+      await apiFetch("/account", {
+        method: "DELETE",
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      window.location.href = "/login";
+    } catch (err) {
+      showError(
+        err instanceof Error ? err.message : "Failed to delete account",
+      );
+      setDeleteLoading(false);
     }
   };
 
@@ -248,6 +275,35 @@ export default function PortalSettingsPage() {
             </button>
           </form>
         )}
+      </div>
+
+      {/* Delete Account Section */}
+      <div className="max-w-md border-t border-red-200 dark:border-red-900 pt-8">
+        <h2 className="text-sm font-medium text-red-600 dark:text-red-400 mb-1">Delete Account</h2>
+        <p className="text-sm text-[var(--muted-foreground)] mb-4">
+          Permanently delete your account and remove your access to all projects. This cannot be undone.
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm text-[var(--muted-foreground)]">
+              Confirm your password
+            </label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Your current password"
+              className="w-full mt-1 px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]"
+            />
+          </div>
+          <button
+            onClick={handleDeleteAccount}
+            disabled={!deletePassword || deleteLoading}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+          >
+            {deleteLoading ? "Deleting..." : "Delete Account"}
+          </button>
+        </div>
       </div>
     </div>
   );

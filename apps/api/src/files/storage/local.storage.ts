@@ -15,7 +15,11 @@ export class LocalStorage implements StorageProvider {
   }
 
   private getFilePath(key: string): string {
-    return path.join(this.uploadDir, key);
+    const filePath = path.resolve(this.uploadDir, key);
+    if (!filePath.startsWith(path.resolve(this.uploadDir))) {
+      throw new Error("Path traversal detected");
+    }
+    return filePath;
   }
 
   async upload(key: string, body: Buffer, _contentType: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { getCsrfToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
@@ -31,8 +32,10 @@ test.describe("Internal Notes", () => {
     let projectId: string;
 
     test.beforeAll(async ({ request }) => {
+      const csrfToken = getCsrfToken();
       const res = await request.post(`${API}/projects`, {
         data: { name: "Notes Test Project" },
+        headers: { "x-csrf-token": csrfToken },
       });
       if (res.ok()) {
         const body = await res.json();
@@ -42,8 +45,10 @@ test.describe("Internal Notes", () => {
 
     test("create note via API", async ({ request }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       const res = await request.post(`${API}/notes?projectId=${projectId}`, {
         data: { content: "E2E test internal note" },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(res.status()).toBe(201);
       const body = await res.json();
@@ -60,12 +65,16 @@ test.describe("Internal Notes", () => {
 
     test("delete note via API", async ({ request }) => {
       test.skip(!projectId, "No project available");
+      const csrfToken = getCsrfToken();
       const createRes = await request.post(`${API}/notes?projectId=${projectId}`, {
         data: { content: "Note to delete" },
+        headers: { "x-csrf-token": csrfToken },
       });
       const note = await createRes.json();
 
-      const res = await request.delete(`${API}/notes/${note.id}`);
+      const res = await request.delete(`${API}/notes/${note.id}`, {
+        headers: { "x-csrf-token": csrfToken },
+      });
       expect(res.ok()).toBeTruthy();
     });
 

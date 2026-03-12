@@ -29,3 +29,16 @@ export const ROLES = {
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
+
+export const DELETED_USER_SENTINEL = "deleted";
+
+export interface OwnedOrg {
+  id: string;
+  name: string;
+  isSoleOwner: boolean;
+  memberCount: number;
+}
+
+export interface DeletionInfo {
+  ownedOrganizations: OwnedOrg[];
+}

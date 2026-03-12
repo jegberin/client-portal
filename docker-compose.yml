@@ -2,15 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: atrium
-      POSTGRES_PASSWORD: atrium
-      POSTGRES_DB: atrium
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-atrium}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atrium}
+      POSTGRES_DB: ${POSTGRES_DB:-atrium}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U atrium"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atrium}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,8 +18,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DATABASE_URL: "postgresql://atrium:atrium@postgres:5432/atrium"
-      BETTER_AUTH_SECRET: "change-me-to-a-random-string-at-least-32-chars"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-atrium}:${POSTGRES_PASSWORD:-atrium}@postgres:5432/${POSTGRES_DB:-atrium}"
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:-change-me-to-a-random-string-at-least-32-chars}"
     volumes:
       - uploads:/app/uploads
     depends_on:

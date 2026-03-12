@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { setActiveOrgAndRedirect } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -33,39 +34,9 @@ export default function LoginPage() {
 
       await res.json();
 
-      // 2. Get user's organizations and set the first one active
-      const orgsRes = await fetch(
-        `${API_URL}/api/auth/organization/list`,
-        { credentials: "include" },
-      );
-
-      let role = "member";
-      if (orgsRes.ok) {
-        const orgs = await orgsRes.json();
-        if (orgs?.length > 0) {
-          await fetch(`${API_URL}/api/auth/organization/set-active`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ organizationId: orgs[0].id }),
-            credentials: "include",
-          });
-
-          // 3. Get the user's role
-          const memberRes = await fetch(
-            `${API_URL}/api/auth/organization/get-active-member`,
-            { credentials: "include" },
-          );
-          if (memberRes.ok) {
-            const member = await memberRes.json();
-            role = member?.role || "member";
-          }
-        }
-      }
-
-      // Route based on role
+      // 2. Set active org and redirect by role
       setRedirecting(true);
-      window.location.href =
-        role === "owner" || role === "admin" ? "/dashboard" : "/portal/projects";
+      window.location.href = await setActiveOrgAndRedirect("/portal/projects");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
       setLoading(false);

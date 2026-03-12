@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { setActiveOrgAndRedirect } from "@/lib/api";
 
 function AcceptInviteContent() {
   const searchParams = useSearchParams();
@@ -46,7 +47,22 @@ function AcceptInviteContent() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || "Signup failed");
+          // If user already exists, auto-switch to login and retry
+          if (res.status === 422 || data.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
+            const loginRes = await fetch(`${apiUrl}/api/auth/sign-in/email`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+              credentials: "include",
+            });
+            if (!loginRes.ok) {
+              const loginData = await loginRes.json().catch(() => ({}));
+              throw new Error(loginData.message || "Account exists but login failed. Try signing in instead.");
+            }
+            setMode("login");
+          } else {
+            throw new Error(data.message || "Signup failed");
+          }
         }
       } else {
         const res = await fetch(`${apiUrl}/api/auth/sign-in/email`, {
@@ -77,7 +93,8 @@ function AcceptInviteContent() {
         throw new Error(data.message || "Failed to accept invitation");
       }
 
-      window.location.href = "/portal";
+      // Step 3: Set active organization and redirect by role
+      window.location.href = await setActiveOrgAndRedirect("/portal");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -99,7 +116,7 @@ function AcceptInviteContent() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">
+            <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg">
               {error}
             </div>
           )}

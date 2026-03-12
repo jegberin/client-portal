@@ -82,7 +82,13 @@ test.describe("Auth", () => {
 
     // Complete setup to get to dashboard
     const apiUrl = "http://localhost:3001";
-    await page.request.post(`${apiUrl}/api/setup/complete`, {});
+    // Ensure CSRF cookie is set by making a GET request first
+    await page.request.get(`${apiUrl}/api/setup/status`);
+    const cookies = await context.cookies();
+    const csrfToken = cookies.find((c) => c.name === "csrf-token")?.value || "";
+    await page.request.post(`${apiUrl}/api/setup/complete`, {
+      headers: { "x-csrf-token": csrfToken },
+    });
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/dashboard/, { timeout: 10000 });
     await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible();

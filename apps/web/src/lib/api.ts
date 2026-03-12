@@ -63,3 +63,36 @@ export async function apiFetch<T = unknown>(
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
 }
+
+/**
+ * After authentication, sets the active org and returns the redirect path
+ * based on the user's role (owner/admin -> /dashboard, member -> /portal).
+ */
+export async function setActiveOrgAndRedirect(
+  defaultPath = "/portal",
+): Promise<string> {
+  const orgsRes = await fetch(`${API_URL}/api/auth/organization/list`, {
+    credentials: "include",
+  });
+  if (!orgsRes.ok) return defaultPath;
+
+  const orgs = await orgsRes.json();
+  if (!orgs?.length) return defaultPath;
+
+  await fetch(`${API_URL}/api/auth/organization/set-active`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ organizationId: orgs[0].id }),
+    credentials: "include",
+  });
+
+  const memberRes = await fetch(
+    `${API_URL}/api/auth/organization/get-active-member`,
+    { credentials: "include" },
+  );
+  if (!memberRes.ok) return defaultPath;
+
+  const member = await memberRes.json();
+  const role = member?.role || "member";
+  return role === "owner" || role === "admin" ? "/dashboard" : defaultPath;
+}

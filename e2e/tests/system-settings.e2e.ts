@@ -43,9 +43,9 @@ test.describe("System Settings", () => {
     // Select SMTP and check that SMTP fields appear
     await select.selectOption("smtp");
     await expect(page.getByText(/smtp host/i)).toBeVisible();
-    await expect(page.getByText(/port/i)).toBeVisible();
-    await expect(page.getByText(/username/i)).toBeVisible();
-    await expect(page.getByText(/password/i)).toBeVisible();
+    await expect(page.getByText("Port", { exact: true })).toBeVisible();
+    await expect(page.getByText("Username", { exact: true })).toBeVisible();
+    await expect(page.getByText("Password", { exact: true })).toBeVisible();
 
     // Select None and check that provider-specific fields disappear
     await select.selectOption("");

@@ -22,13 +22,17 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun run --filter @atrium/api dev",
+      command: process.env.CI
+        ? "bun run apps/api/dist/main"
+        : "bun run --filter @atrium/api dev",
       url: "http://localhost:3001/api/health",
       reuseExistingServer: !process.env.CI,
       cwd: "../",
     },
     {
-      command: "bun run --filter @atrium/web dev",
+      command: process.env.CI
+        ? "bun run --filter @atrium/web start"
+        : "bun run --filter @atrium/web dev",
       url: "http://localhost:3000",
       reuseExistingServer: !process.env.CI,
       cwd: "../",

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { getCsrfToken } from "./helpers";
 
 const API = "http://localhost:3001/api";
 
@@ -6,14 +7,14 @@ test.describe("Client Profiles", () => {
   test.describe("Dashboard clients page", () => {
     test("clients page loads", async ({ page }) => {
       await page.goto("/dashboard/clients");
-      await expect(page.getByRole("heading", { name: /clients/i })).toBeVisible();
+      await expect(page.locator("h1", { hasText: /clients/i })).toBeVisible();
     });
 
     test("clients page shows member list", async ({ page }) => {
       await page.goto("/dashboard/clients");
-      await expect(page.getByRole("heading", { name: /clients/i })).toBeVisible();
+      await expect(page.locator("h1", { hasText: /clients/i })).toBeVisible();
       // The invite form should be visible
-      await expect(page.getByPlaceholder(/client.*email/i)).toBeVisible();
+      await expect(page.getByPlaceholder(/client@/i)).toBeVisible();
     });
   });
 
@@ -38,11 +39,13 @@ test.describe("Client Profiles", () => {
     });
 
     test("update own profile via API", async ({ request }) => {
+      const csrfToken = getCsrfToken();
       const res = await request.put(`${API}/clients/me/profile`, {
         data: {
           company: "E2E Test Company",
           phone: "555-0123",
         },
+        headers: { "x-csrf-token": csrfToken },
       });
       expect(res.ok()).toBeTruthy();
       const body = await res.json();
