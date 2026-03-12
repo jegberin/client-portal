@@ -14,7 +14,7 @@ test.describe("Branding", () => {
 
   test("logo upload area is visible on system settings page", async ({ page }) => {
     await page.goto("/dashboard/settings/system");
-    await expect(page.getByText(/company logo/i)).toBeVisible();
+    await expect(page.getByText("Company Logo", { exact: true })).toBeVisible();
   });
 
   test("preview bar is visible on system settings page", async ({ page }) => {
