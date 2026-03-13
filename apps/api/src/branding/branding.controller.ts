@@ -121,10 +121,19 @@ export class BrandingController {
       return;
     }
 
-    const { body, contentType } = await this.storage.download(branding.logoKey);
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=3600");
-    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    body.pipe(res);
+    try {
+      const { body, contentType } = await this.storage.download(branding.logoKey);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      body.pipe(res);
+    } catch (err: unknown) {
+      const code = (err as Record<string, unknown>)?.name as string || "";
+      if (code === "NoSuchKey" || code === "NotFound") {
+        res.status(404).json({ message: "Logo not found in storage" });
+      } else {
+        res.status(500).json({ message: "Failed to retrieve logo" });
+      }
+    }
   }
 }

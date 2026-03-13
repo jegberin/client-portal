@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { DecisionsService } from "./decisions.service";
 import { CreateDecisionDto, UpdateDecisionDto, DecisionListQueryDto, RespondDecisionDto } from "./decisions.dto";
-import { AuthGuard, RolesGuard, Roles, CurrentUser, CurrentOrg, PaginationQueryDto } from "../common";
+import { AuthGuard, RolesGuard, Roles, CurrentUser, CurrentOrg } from "../common";
 
 @Controller("decisions")
 @UseGuards(AuthGuard, RolesGuard)
@@ -35,9 +35,14 @@ export class DecisionsController {
     @CurrentUser("id") userId: string,
     @CurrentOrg("id") orgId: string,
     @Query("projectId") projectId: string,
-    @Query() pagination: PaginationQueryDto,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.decisionsService.findMine(userId, orgId, projectId, pagination.page, pagination.limit);
+    return this.decisionsService.findMine(
+      userId, orgId, projectId,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
   }
 
   @Get("mine/:id/response")

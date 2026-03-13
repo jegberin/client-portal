@@ -133,14 +133,13 @@ export function InvoicesSection({
       if (newPdfFile && created.id) {
         const formData = new FormData();
         formData.append("file", newPdfFile);
-        const pdfRes = await fetch(`/api/invoices/${created.id}/pdf`, {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        });
-        if (!pdfRes.ok) {
-          const errData = await pdfRes.json().catch(() => ({}));
-          showError(errData.message || "Invoice created but PDF upload failed");
+        try {
+          await apiFetch(`/invoices/${created.id}/pdf`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch (pdfErr) {
+          showError(pdfErr instanceof Error ? pdfErr.message : "Invoice created but PDF upload failed");
         }
       }
 
@@ -235,15 +234,10 @@ export function InvoicesSection({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+      await apiFetch(`/invoices/${invoiceId}/pdf`, {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || "Upload failed");
-      }
       loadInvoices();
       success("PDF uploaded");
     } catch (err) {

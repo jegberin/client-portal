@@ -19,7 +19,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { Response } from "express";
 import { QuotesService } from "./quotes.service";
 import { CreateQuoteDto, UpdateQuoteDto, QuoteListQueryDto, RespondQuoteDto } from "./quotes.dto";
-import { AuthGuard, RolesGuard, Roles, CurrentUser, CurrentOrg, PaginationQueryDto, sanitizeFilename } from "../common";
+import { AuthGuard, RolesGuard, Roles, CurrentUser, CurrentOrg, sanitizeFilename } from "../common";
 import type { StorageProvider } from "../files/storage/storage.interface";
 import { STORAGE_PROVIDER } from "../files/storage/storage.interface";
 import { extname } from "path";
@@ -78,9 +78,14 @@ export class QuotesController {
     @CurrentUser("id") userId: string,
     @CurrentOrg("id") orgId: string,
     @Query("projectId") projectId: string,
-    @Query() pagination: PaginationQueryDto,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.quotesService.findMine(userId, orgId, projectId, pagination.page, pagination.limit);
+    return this.quotesService.findMine(
+      userId, orgId, projectId,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
   }
 
   @Post("mine/:id/respond")
