@@ -49,3 +49,8 @@ externalPort = 3001
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "scripts/replit-prod.sh"]
+build = ["bash", "scripts/replit-build.sh"]
