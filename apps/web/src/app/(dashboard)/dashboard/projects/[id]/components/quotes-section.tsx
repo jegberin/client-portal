@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Plus, Trash2, FileCheck, Send } from "lucide-react";
+import { Plus, Trash2, FileCheck, Send, Upload, Download, Eye, FileText } from "lucide-react";
 
 interface QuoteItem {
   id: string;
@@ -14,6 +14,8 @@ interface QuoteItem {
   description?: string | null;
   amount: number;
   status: string;
+  pdfFileKey?: string | null;
+  pdfFileName?: string | null;
   respondedById?: string | null;
   respondedAt?: string | null;
   responseNote?: string | null;
@@ -51,7 +53,10 @@ export function QuotesSection({
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newAmount, setNewAmount] = useState("");
+  const [newPdfFile, setNewPdfFile] = useState<File | null>(null);
+  const newPdfRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingPdfFor, setUploadingPdfFor] = useState<string | null>(null);
 
   const loadQuotes = useCallback(async () => {
     setLoading(true);
@@ -74,7 +79,7 @@ export function QuotesSection({
   const handleCreate = async () => {
     setSubmitting(true);
     try {
-      await apiFetch("/quotes", {
+      const created = await apiFetch<QuoteItem>("/quotes", {
         method: "POST",
         body: JSON.stringify({
           title: newTitle,
@@ -83,10 +88,26 @@ export function QuotesSection({
           projectId,
         }),
       });
+
+      if (newPdfFile && created.id) {
+        try {
+          const formData = new FormData();
+          formData.append("file", newPdfFile);
+          await apiFetch(`/quotes/${created.id}/pdf`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch (pdfErr) {
+          showError(pdfErr instanceof Error ? pdfErr.message : "Quote created but PDF upload failed");
+        }
+      }
+
       setShowCreate(false);
       setNewTitle("");
       setNewDescription("");
       setNewAmount("");
+      setNewPdfFile(null);
+      if (newPdfRef.current) newPdfRef.current.value = "";
       loadQuotes();
       success("Quote created");
     } catch (err) {
@@ -126,6 +147,42 @@ export function QuotesSection({
     }
   };
 
+  const handleUploadPdf = async (quoteId: string, file: File) => {
+    setUploadingPdfFor(quoteId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await apiFetch(`/quotes/${quoteId}/pdf`, {
+        method: "POST",
+        body: formData,
+      });
+      loadQuotes();
+      success("PDF uploaded");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to upload PDF");
+    } finally {
+      setUploadingPdfFor(null);
+    }
+  };
+
+  const handleDownloadPdf = async (quoteId: string, title: string) => {
+    try {
+      const res = await fetch(`/api/quotes/${quoteId}/pdf`, { credentials: "include" });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to download PDF");
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -149,7 +206,7 @@ export function QuotesSection({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           onClick={(e) => { if (e.target === e.currentTarget) setShowCreate(false); }}
         >
-          <div className="bg-[var(--background)] rounded-xl shadow-lg w-full max-w-lg mx-4 p-6 space-y-4">
+          <div className="bg-[var(--background)] rounded-xl shadow-lg w-full max-w-lg mx-4 p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold">New Quote</h3>
             <div>
               <label className="text-sm text-[var(--muted-foreground)]">Title</label>
@@ -186,6 +243,34 @@ export function QuotesSection({
                 />
               </div>
             </div>
+            <div>
+              <label className="text-sm text-[var(--muted-foreground)]">Attach PDF</label>
+              <div className="mt-1 flex items-center gap-3">
+                <label className="flex items-center gap-2 px-3 py-1.5 border border-[var(--border)] rounded-lg text-sm cursor-pointer hover:bg-[var(--muted)]">
+                  <Upload size={14} />
+                  {newPdfFile ? newPdfFile.name : "Choose PDF..."}
+                  <input
+                    ref={newPdfRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => setNewPdfFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {newPdfFile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewPdfFile(null);
+                      if (newPdfRef.current) newPdfRef.current.value = "";
+                    }}
+                    className="text-xs text-red-500 hover:underline"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-1.5 border border-[var(--border)] rounded-lg text-sm hover:bg-[var(--muted)]">
                 Cancel
@@ -211,13 +296,17 @@ export function QuotesSection({
           {quotes.map((q) => {
             const colors = statusColors[q.status] || statusColors.draft;
             const isExpanded = expandedId === q.id;
+            const hasPdf = !!q.pdfFileKey;
             return (
               <div key={q.id} className="border border-[var(--border)] rounded-lg">
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : q.id)}
                   className="flex items-center justify-between w-full p-3 text-left hover:bg-[var(--muted)] transition-colors rounded-lg"
                 >
-                  <span className="text-sm font-medium">{q.title}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{q.title}</span>
+                    {hasPdf && <FileText size={14} className="text-[var(--primary)]" />}
+                  </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-medium">{formatCurrency(q.amount)}</span>
                     <span
@@ -237,6 +326,27 @@ export function QuotesSection({
                       </p>
                     )}
 
+                    {hasPdf && (
+                      <div className="flex items-center gap-3 pt-2">
+                        <a
+                          href={`/api/quotes/${q.id}/pdf`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+                        >
+                          <Eye size={12} />
+                          View PDF
+                        </a>
+                        <button
+                          onClick={() => handleDownloadPdf(q.id, q.title)}
+                          className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+                        >
+                          <Download size={12} />
+                          Download PDF
+                        </button>
+                      </div>
+                    )}
+
                     {q.responseNote && (
                       <div className="bg-[var(--muted)] rounded-lg p-3">
                         <p className="text-xs font-medium mb-1">Client Response</p>
@@ -253,6 +363,23 @@ export function QuotesSection({
                           <Send size={12} />
                           Send to Client
                         </button>
+                      )}
+                      {!isArchived && (
+                        <label className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline cursor-pointer">
+                          <Upload size={12} />
+                          {uploadingPdfFor === q.id ? "Uploading..." : hasPdf ? "Replace PDF" : "Upload PDF"}
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            disabled={!!uploadingPdfFor}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleUploadPdf(q.id, file);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
                       )}
                       {!isArchived && (
                         <button

@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { FileCheck, ThumbsUp, ThumbsDown } from "lucide-react";
+import { FileCheck, ThumbsUp, ThumbsDown, Download, Eye } from "lucide-react";
 
 interface QuoteItem {
   id: string;
@@ -13,6 +13,8 @@ interface QuoteItem {
   description?: string | null;
   amount: number;
   status: string;
+  pdfFileKey?: string | null;
+  pdfFileName?: string | null;
   respondedAt?: string | null;
   responseNote?: string | null;
   createdAt: string;
@@ -72,6 +74,24 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
     }
   };
 
+  const handleDownloadPdf = async (quoteId: string, title: string) => {
+    try {
+      const res = await fetch(`/api/quotes/mine/${quoteId}/pdf`, { credentials: "include" });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to download PDF");
+    }
+  };
+
   if (loading) {
     return (
       <div>
@@ -93,6 +113,7 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
             const colors = statusColors[q.status] || statusColors.sent;
             const isExpanded = expandedId === q.id;
             const isSent = q.status === "sent";
+            const hasPdf = !!q.pdfFileKey;
 
             return (
               <div key={q.id} className="border border-[var(--border)] rounded-lg">
@@ -124,6 +145,27 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
                       <span className="text-xs text-[var(--muted-foreground)]">Amount</span>
                       <p className="text-xl font-bold">{formatCurrency(q.amount)}</p>
                     </div>
+
+                    {hasPdf && (
+                      <div className="flex items-center gap-3">
+                        <a
+                          href={`/api/quotes/mine/${q.id}/pdf`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
+                        >
+                          <Eye size={14} />
+                          View PDF
+                        </a>
+                        <button
+                          onClick={() => handleDownloadPdf(q.id, q.title)}
+                          className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
+                        >
+                          <Download size={14} />
+                          Download PDF
+                        </button>
+                      </div>
+                    )}
 
                     {isSent && (
                       <div className="space-y-3 pt-2">

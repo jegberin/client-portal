@@ -9,7 +9,15 @@ import { HelpCircle, CheckCircle2, Circle } from "lucide-react";
 interface DecisionOption {
   id: string;
   label: string;
-  selected: boolean;
+}
+
+interface DecisionResponseItem {
+  id: string;
+  userId: string;
+  choice?: string | null;
+  answer?: string | null;
+  createdAt: string;
+  user: { id: string; name: string; email: string };
 }
 
 interface DecisionItem {
@@ -18,8 +26,8 @@ interface DecisionItem {
   description?: string | null;
   type: string;
   status: string;
-  respondedAt?: string | null;
   options: DecisionOption[];
+  responses: DecisionResponseItem[];
   createdAt: string;
 }
 
@@ -104,7 +112,8 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
             const colors = statusColors[d.status] || statusColors.open;
             const isExpanded = expandedId === d.id;
             const isOpen = d.status === "open";
-            const selectedOption = d.options.find((o) => o.selected);
+            const myResponse = d.responses.length > 0 ? d.responses[0] : null;
+            const hasResponded = !!myResponse;
 
             return (
               <div key={d.id} className="border border-[var(--border)] rounded-lg">
@@ -122,12 +131,17 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
                       {d.type === "multiple_choice" ? "Multiple Choice" : "Open Question"}
                     </span>
                   </div>
-                  <span
-                    className="text-xs px-2 py-1 rounded-full font-medium"
-                    style={{ backgroundColor: colors.bg, color: colors.text }}
-                  >
-                    {d.status}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {hasResponded && (
+                      <span className="text-xs text-green-600 font-medium">Responded</span>
+                    )}
+                    <span
+                      className="text-xs px-2 py-1 rounded-full font-medium"
+                      style={{ backgroundColor: colors.bg, color: colors.text }}
+                    >
+                      {d.status}
+                    </span>
+                  </div>
                 </button>
 
                 {isExpanded && (
@@ -138,7 +152,24 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
                       </p>
                     )}
 
-                    {d.type === "multiple_choice" && isOpen && (
+                    {hasResponded && (
+                      <div className="pt-2">
+                        <p className="text-xs text-[var(--muted-foreground)] mb-1">Your response:</p>
+                        {d.type === "multiple_choice" && myResponse?.choice && (
+                          <div className="flex items-center gap-2 p-2.5 rounded-lg border border-[var(--primary)] bg-[var(--primary)]/5">
+                            <CheckCircle2 size={16} className="text-[var(--primary)] shrink-0" />
+                            <span className="text-sm font-medium">{myResponse.choice}</span>
+                          </div>
+                        )}
+                        {d.type === "open" && myResponse?.answer && (
+                          <div className="bg-[var(--muted)] rounded-lg p-3">
+                            <p className="text-sm whitespace-pre-wrap">{myResponse.answer}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {!hasResponded && isOpen && d.type === "multiple_choice" && (
                       <div className="space-y-1.5 pt-2">
                         {d.options.map((opt) => (
                           <button
@@ -161,17 +192,7 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
                       </div>
                     )}
 
-                    {d.type === "multiple_choice" && !isOpen && selectedOption && (
-                      <div className="pt-2">
-                        <p className="text-xs text-[var(--muted-foreground)] mb-1">You selected:</p>
-                        <div className="flex items-center gap-2 p-2.5 rounded-lg border border-[var(--primary)] bg-[var(--primary)]/5">
-                          <CheckCircle2 size={16} className="text-[var(--primary)] shrink-0" />
-                          <span className="text-sm font-medium">{selectedOption.label}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {d.type === "open" && isOpen && (
+                    {!hasResponded && isOpen && d.type === "open" && (
                       <div className="pt-2">
                         <label className="text-sm text-[var(--muted-foreground)]">Your Response</label>
                         <textarea
@@ -184,7 +205,7 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
                       </div>
                     )}
 
-                    {isOpen && (
+                    {!hasResponded && isOpen && (
                       <button
                         onClick={() => handleRespond(d.id)}
                         disabled={

@@ -52,6 +52,20 @@ export class QuotesService {
     return quote;
   }
 
+  async findOneMine(id: string, userId: string, orgId: string) {
+    const quote = await this.prisma.quote.findFirst({
+      where: { id, organizationId: orgId, status: { not: "draft" } },
+    });
+    if (!quote) throw new NotFoundException("Quote not found");
+
+    const assignment = await this.prisma.projectClient.findFirst({
+      where: { projectId: quote.projectId, userId },
+    });
+    if (!assignment) throw new ForbiddenException("Not assigned to this project");
+
+    return quote;
+  }
+
   async update(id: string, dto: UpdateQuoteDto, orgId: string) {
     const quote = await this.prisma.quote.findFirst({
       where: { id, organizationId: orgId },
@@ -66,6 +80,18 @@ export class QuotesService {
         ...(dto.amount !== undefined && { amount: dto.amount }),
         ...(dto.status !== undefined && { status: dto.status }),
       },
+    });
+  }
+
+  async setPdf(id: string, orgId: string, pdfFileKey: string | null, pdfFileName: string | null) {
+    const quote = await this.prisma.quote.findFirst({
+      where: { id, organizationId: orgId },
+    });
+    if (!quote) throw new NotFoundException("Quote not found");
+
+    return this.prisma.quote.update({
+      where: { id },
+      data: { pdfFileKey, pdfFileName },
     });
   }
 

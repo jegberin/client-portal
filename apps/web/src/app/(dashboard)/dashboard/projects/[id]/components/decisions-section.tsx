@@ -5,12 +5,20 @@ import { apiFetch } from "@/lib/api";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Plus, Trash2, HelpCircle, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Trash2, HelpCircle, CheckCircle2, Circle, Lock } from "lucide-react";
 
 interface DecisionOption {
   id: string;
   label: string;
-  selected: boolean;
+}
+
+interface DecisionResponseItem {
+  id: string;
+  userId: string;
+  choice?: string | null;
+  answer?: string | null;
+  createdAt: string;
+  user: { id: string; name: string; email: string };
 }
 
 interface DecisionItem {
@@ -19,10 +27,8 @@ interface DecisionItem {
   description?: string | null;
   type: string;
   status: string;
-  openResponse?: string | null;
-  respondedById?: string | null;
-  respondedAt?: string | null;
   options: DecisionOption[];
+  responses: DecisionResponseItem[];
   createdAt: string;
 }
 
@@ -220,14 +226,16 @@ export function DecisionsSection({
                       )}
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setNewOptions((prev) => [...prev, ""])}
-                    className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
-                  >
-                    <Plus size={14} />
-                    Add Option
-                  </button>
+                  {newOptions.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setNewOptions((prev) => [...prev, ""])}
+                      className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
+                    >
+                      <Plus size={14} />
+                      Add Option
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -257,7 +265,6 @@ export function DecisionsSection({
           {decisions.map((d) => {
             const colors = statusColors[d.status] || statusColors.open;
             const isExpanded = expandedId === d.id;
-            const selectedOption = d.options.find((o) => o.selected);
             return (
               <div key={d.id} className="border border-[var(--border)] rounded-lg">
                 <button
@@ -270,12 +277,19 @@ export function DecisionsSection({
                       {d.type === "multiple_choice" ? "Multiple Choice" : "Open Question"}
                     </span>
                   </div>
-                  <span
-                    className="text-xs px-2 py-1 rounded-full font-medium"
-                    style={{ backgroundColor: colors.bg, color: colors.text }}
-                  >
-                    {d.status}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {d.responses.length > 0 && (
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        {d.responses.length} response{d.responses.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    <span
+                      className="text-xs px-2 py-1 rounded-full font-medium"
+                      style={{ backgroundColor: colors.bg, color: colors.text }}
+                    >
+                      {d.status}
+                    </span>
+                  </div>
                 </button>
 
                 {isExpanded && (
@@ -288,38 +302,48 @@ export function DecisionsSection({
 
                     {d.type === "multiple_choice" && d.options.length > 0 && (
                       <div className="space-y-1.5 pt-2">
-                        {d.options.map((opt) => (
-                          <div
-                            key={opt.id}
-                            className={`flex items-center gap-2 p-2.5 rounded-lg border ${
-                              opt.selected
-                                ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                                : "border-[var(--border)]"
-                            }`}
-                          >
-                            {opt.selected ? (
-                              <CheckCircle2 size={16} className="text-[var(--primary)] shrink-0" />
-                            ) : (
-                              <Circle size={16} className="text-[var(--muted-foreground)] shrink-0" />
-                            )}
-                            <span className={`text-sm ${opt.selected ? "font-medium" : ""}`}>
-                              {opt.label}
-                            </span>
-                          </div>
-                        ))}
+                        <p className="text-xs font-medium text-[var(--muted-foreground)]">Options</p>
+                        {d.options.map((opt) => {
+                          const votes = d.responses.filter((r) => r.choice === opt.label).length;
+                          return (
+                            <div
+                              key={opt.id}
+                              className={`flex items-center justify-between p-2.5 rounded-lg border ${
+                                votes > 0 ? "border-[var(--primary)] bg-[var(--primary)]/5" : "border-[var(--border)]"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {votes > 0 ? (
+                                  <CheckCircle2 size={16} className="text-[var(--primary)] shrink-0" />
+                                ) : (
+                                  <Circle size={16} className="text-[var(--muted-foreground)] shrink-0" />
+                                )}
+                                <span className={`text-sm ${votes > 0 ? "font-medium" : ""}`}>{opt.label}</span>
+                              </div>
+                              {votes > 0 && (
+                                <span className="text-xs text-[var(--primary)] font-medium">
+                                  {votes} vote{votes !== 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
-                    {d.status === "closed" && selectedOption && (
-                      <p className="text-xs text-[var(--muted-foreground)]">
-                        Client selected: <span className="font-medium">{selectedOption.label}</span>
-                      </p>
-                    )}
-
-                    {d.status === "closed" && d.type === "open" && d.openResponse && (
-                      <div className="bg-[var(--muted)] rounded-lg p-3">
-                        <p className="text-xs font-medium mb-1">Client Response</p>
-                        <p className="text-sm whitespace-pre-wrap">{d.openResponse}</p>
+                    {d.responses.length > 0 && (
+                      <div className="space-y-2 pt-2">
+                        <p className="text-xs font-medium text-[var(--muted-foreground)]">
+                          Responses ({d.responses.length})
+                        </p>
+                        {d.responses.map((r) => (
+                          <div key={r.id} className="bg-[var(--muted)] rounded-lg p-3">
+                            <p className="text-xs font-medium mb-1">{r.user.name}</p>
+                            <p className="text-sm">
+                              {d.type === "multiple_choice" ? r.choice : r.answer}
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     )}
 
@@ -327,8 +351,9 @@ export function DecisionsSection({
                       {d.status === "open" && !isArchived && (
                         <button
                           onClick={() => handleClose(d.id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:opacity-90"
+                          className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg text-xs hover:opacity-90"
                         >
+                          <Lock size={12} />
                           Close Decision
                         </button>
                       )}

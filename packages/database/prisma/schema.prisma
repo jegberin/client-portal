@@ -18,10 +18,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  sessions       Session[]
-  accounts       Account[]
-  members        Member[]
-  projectClients ProjectClient[]
+  sessions           Session[]
+  accounts           Account[]
+  members            Member[]
+  projectClients     ProjectClient[]
+  decisionResponses  DecisionResponse[]
 
   @@map("user")
 }
@@ -349,6 +350,8 @@ model Quote {
   description    String?
   amount         Int      @default(0)
   status         String   @default("draft")
+  pdfFileKey     String?
+  pdfFileName    String?
   projectId      String
   organizationId String
   respondedById  String?
@@ -372,16 +375,14 @@ model Decision {
   description    String?
   type           String   @default("multiple_choice")
   status         String   @default("open")
-  openResponse   String?
   projectId      String
   organizationId String
-  respondedById  String?
-  respondedAt    DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  options DecisionOption[]
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  options   DecisionOption[]
+  responses DecisionResponse[]
 
   @@index([projectId])
   @@index([organizationId])
@@ -391,13 +392,29 @@ model Decision {
 model DecisionOption {
   id         String  @id @default(cuid())
   label      String
-  selected   Boolean @default(false)
   decisionId String
 
   decision Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
 
   @@index([decisionId])
   @@map("decision_option")
+}
+
+model DecisionResponse {
+  id         String   @id @default(cuid())
+  decisionId String
+  userId     String
+  choice     String?
+  answer     String?
+  createdAt  DateTime @default(now())
+
+  decision Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([decisionId, userId])
+  @@index([decisionId])
+  @@index([userId])
+  @@map("decision_response")
 }
 
 // ─── Billing / Subscription tables ───

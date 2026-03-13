@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateDecisionDto, UpdateDecisionDto, DecisionListQueryDto, RespondDecisionDto } from "./decisions.dto";
 import { paginationArgs, paginatedResponse } from "../common";
@@ -28,7 +29,7 @@ export class DecisionsService {
           ? { create: dto.options.map((o) => ({ label: o.label })) }
           : undefined,
       },
-      include: { options: true },
+      include: { options: true, responses: { include: { user: { select: { id: true, name: true, email: true } } } } },
     });
   }
 
@@ -44,7 +45,13 @@ export class DecisionsService {
       this.prisma.decision.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        include: { options: true },
+        include: {
+          options: true,
+          responses: {
+            include: { user: { select: { id: true, name: true, email: true } } },
+            orderBy: { createdAt: "desc" },
+          },
+        },
         ...paginationArgs(page, limit),
       }),
       this.prisma.decision.count({ where }),
@@ -56,7 +63,13 @@ export class DecisionsService {
   async findOne(id: string, orgId: string) {
     const decision = await this.prisma.decision.findFirst({
       where: { id, organizationId: orgId },
-      include: { options: true },
+      include: {
+        options: true,
+        responses: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+          orderBy: { createdAt: "desc" },
+        },
+      },
     });
     if (!decision) throw new NotFoundException("Decision not found");
     return decision;
@@ -75,7 +88,7 @@ export class DecisionsService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.status !== undefined && { status: dto.status }),
       },
-      include: { options: true },
+      include: { options: true, responses: { include: { user: { select: { id: true, name: true, email: true } } } } },
     });
   }
 
@@ -101,14 +114,19 @@ export class DecisionsService {
     const where = {
       projectId,
       organizationId: orgId,
-      status: "open",
     };
 
     const [data, total] = await Promise.all([
       this.prisma.decision.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        include: { options: true },
+        include: {
+          options: true,
+          responses: {
+            where: { userId },
+            include: { user: { select: { id: true, name: true, email: true } } },
+          },
+        },
         ...paginationArgs(page, limit),
       }),
       this.prisma.decision.count({ where }),
@@ -129,34 +147,48 @@ export class DecisionsService {
     });
     if (!assignment) throw new ForbiddenException("You are not assigned to this project");
 
-    if (decision.type === "multiple_choice") {
-      if (!dto.selectedOptionId) throw new BadRequestException("Please select an option");
-      const option = decision.options.find((o) => o.id === dto.selectedOptionId);
-      if (!option) throw new BadRequestException("Invalid option");
+    try {
+      if (decision.type === "multiple_choice") {
+        if (!dto.selectedOptionId) throw new BadRequestException("Please select an option");
+        const option = decision.options.find((o) => o.id === dto.selectedOptionId);
+        if (!option) throw new BadRequestException("Invalid option");
 
-      await this.prisma.decisionOption.updateMany({
-        where: { decisionId: id },
-        data: { selected: false },
-      });
-      await this.prisma.decisionOption.update({
-        where: { id: dto.selectedOptionId },
-        data: { selected: true },
-      });
-    } else if (decision.type === "open") {
-      if (!dto.openResponse || !dto.openResponse.trim()) {
-        throw new BadRequestException("Please provide a response");
+        await this.prisma.decisionResponse.create({
+          data: {
+            decisionId: id,
+            userId,
+            choice: option.label,
+          },
+        });
+      } else if (decision.type === "open") {
+        if (!dto.openResponse || !dto.openResponse.trim()) {
+          throw new BadRequestException("Please provide a response");
+        }
+
+        await this.prisma.decisionResponse.create({
+          data: {
+            decisionId: id,
+            userId,
+            answer: dto.openResponse,
+          },
+        });
       }
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new ConflictException("You have already responded to this decision");
+      }
+      throw err;
     }
 
-    return this.prisma.decision.update({
+    return this.prisma.decision.findFirst({
       where: { id },
-      data: {
-        status: "closed",
-        respondedById: userId,
-        respondedAt: new Date(),
-        openResponse: decision.type === "open" ? (dto.openResponse || null) : undefined,
+      include: {
+        options: true,
+        responses: {
+          where: { userId },
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
       },
-      include: { options: true },
     });
   }
 }
