@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Plus, Trash2, Receipt, Download, Upload, FileText } from "lucide-react";
+import { Plus, Trash2, Receipt, Download, Upload, FileText, Eye } from "lucide-react";
 import { track } from "@/lib/track";
 
 interface LineItem {
@@ -522,13 +522,24 @@ export function InvoicesSection({
                         </button>
                       )}
                       {hasPdf && (
-                        <button
-                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                          className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
-                        >
-                          <Download size={12} />
-                          Download PDF
-                        </button>
+                        <>
+                          <a
+                            href={`/api/invoices/${inv.id}/pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+                          >
+                            <Eye size={12} />
+                            View PDF
+                          </a>
+                          <button
+                            onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                            className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+                          >
+                            <Download size={12} />
+                            Download PDF
+                          </button>
+                        </>
                       )}
                       {!isArchived && (
                         <label className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline cursor-pointer">

@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Receipt, Download } from "lucide-react";
+import { Receipt, Download, Eye } from "lucide-react";
 
 interface LineItem {
   id: string;
@@ -156,13 +156,24 @@ export function PortalInvoicesSection({
                         </p>
                       ) : <div />}
                       {hasPdf && (
-                        <button
-                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                          className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
-                        >
-                          <Download size={14} />
-                          Download PDF
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={`/api/invoices/mine/${inv.id}/pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
+                          >
+                            <Eye size={14} />
+                            View PDF
+                          </a>
+                          <button
+                            onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                            className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
+                          >
+                            <Download size={14} />
+                            Download PDF
+                          </button>
+                        </div>
                       )}
                     </div>
 

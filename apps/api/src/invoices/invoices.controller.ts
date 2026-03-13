@@ -100,7 +100,7 @@ export class InvoicesController {
     const { body, contentType } = await this.storage.download(invoice.pdfFileKey);
     const safeName = sanitizeFilename(invoice.pdfFileName || `${invoice.invoiceNumber}.pdf`);
     res.setHeader("Content-Type", contentType || "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+    res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
     body.on("error", () => {
       if (!res.headersSent) res.status(500).end();
     });
@@ -168,7 +168,7 @@ export class InvoicesController {
     const { body, contentType } = await this.storage.download(invoice.pdfFileKey);
     const safeName = sanitizeFilename(invoice.pdfFileName || `${invoice.invoiceNumber}.pdf`);
     res.setHeader("Content-Type", contentType || "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
+    res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
     body.on("error", () => {
       if (!res.headersSent) res.status(500).end();
     });
