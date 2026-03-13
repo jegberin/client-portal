@@ -25,7 +25,7 @@ export class QuotesService {
   }
 
   async findAll(orgId: string, query: QuoteListQueryDto) {
-    const where: any = { organizationId: orgId };
+    const where: { organizationId: string; projectId?: string; status?: string } = { organizationId: orgId };
     if (query.projectId) where.projectId = query.projectId;
     if (query.status) where.status = query.status;
 

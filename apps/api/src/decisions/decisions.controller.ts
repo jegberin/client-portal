@@ -40,6 +40,15 @@ export class DecisionsController {
     return this.decisionsService.findMine(userId, orgId, projectId, pagination.page, pagination.limit);
   }
 
+  @Get("mine/:id/response")
+  findMyResponse(
+    @Param("id") id: string,
+    @CurrentUser("id") userId: string,
+    @CurrentOrg("id") orgId: string,
+  ) {
+    return this.decisionsService.findMyResponse(id, userId, orgId);
+  }
+
   @Post("mine/:id/respond")
   respond(
     @Param("id") id: string,
@@ -54,6 +63,12 @@ export class DecisionsController {
   @Roles("owner", "admin")
   findOne(@Param("id") id: string, @CurrentOrg("id") orgId: string) {
     return this.decisionsService.findOne(id, orgId);
+  }
+
+  @Get(":id/responses")
+  @Roles("owner", "admin")
+  findResponses(@Param("id") id: string, @CurrentOrg("id") orgId: string) {
+    return this.decisionsService.findResponses(id, orgId);
   }
 
   @Put(":id")

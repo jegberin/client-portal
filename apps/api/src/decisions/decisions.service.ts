@@ -34,7 +34,7 @@ export class DecisionsService {
   }
 
   async findAll(orgId: string, query: DecisionListQueryDto) {
-    const where: any = { organizationId: orgId };
+    const where: { organizationId: string; projectId?: string; status?: string } = { organizationId: orgId };
     if (query.projectId) where.projectId = query.projectId;
     if (query.status) where.status = query.status;
 
@@ -100,6 +100,38 @@ export class DecisionsService {
     await this.prisma.decision.delete({ where: { id } });
   }
 
+  async findResponses(id: string, orgId: string) {
+    const decision = await this.prisma.decision.findFirst({
+      where: { id, organizationId: orgId },
+    });
+    if (!decision) throw new NotFoundException("Decision not found");
+
+    return this.prisma.decisionResponse.findMany({
+      where: { decisionId: id },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async findMyResponse(id: string, userId: string, orgId: string) {
+    const decision = await this.prisma.decision.findFirst({
+      where: { id, organizationId: orgId },
+    });
+    if (!decision) throw new NotFoundException("Decision not found");
+
+    const assignment = await this.prisma.projectClient.findFirst({
+      where: { projectId: decision.projectId, userId },
+    });
+    if (!assignment) throw new ForbiddenException("Not assigned to this project");
+
+    const response = await this.prisma.decisionResponse.findFirst({
+      where: { decisionId: id, userId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+
+    return response || null;
+  }
+
   async findMine(userId: string, orgId: string, projectId: string, page = 1, limit = 20) {
     const assignments = await this.prisma.projectClient.findMany({
       where: { userId },
@@ -114,6 +146,10 @@ export class DecisionsService {
     const where = {
       projectId,
       organizationId: orgId,
+      OR: [
+        { status: "open" },
+        { responses: { some: { userId } } },
+      ],
     };
 
     const [data, total] = await Promise.all([
