@@ -5,28 +5,37 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DB_DIR="$ROOT_DIR/packages/database"
 SHARED_DIR="$ROOT_DIR/packages/shared"
 
+# Ensure Bun is available — the deployment container may only have Node.js
+if ! command -v bun &>/dev/null; then
+  echo "==> Bun not found — installing..."
+  curl -fsSL https://bun.sh/install | bash
+  export PATH="$HOME/.bun/bin:$PATH"
+fi
+echo "==> Using Bun $(bun --version)"
+export PATH="$HOME/.bun/bin:$PATH"
+
 echo "==> Installing dependencies with Bun..."
 cd "$ROOT_DIR"
 bun install --frozen-lockfile
 
 echo "==> Building shared package..."
 cd "$SHARED_DIR"
-bunx tsc --build
+bun x tsc --build
 
 echo "==> Generating Prisma client..."
 cd "$DB_DIR"
-bunx prisma generate
+bun x prisma generate
 
 echo "==> Building database package..."
-bunx tsc --build
+bun x tsc --build
 
 echo "==> Building API..."
 cd "$ROOT_DIR/apps/api"
-bunx nest build
+bun x nest build
 
 echo "==> Building web (Next.js standalone)..."
 cd "$ROOT_DIR/apps/web"
-NODE_ENV=production bunx next build
+NODE_ENV=production bun x next build
 
 echo "==> Copying public assets into standalone output..."
 STANDALONE_DIR="$ROOT_DIR/apps/web/.next/standalone"
