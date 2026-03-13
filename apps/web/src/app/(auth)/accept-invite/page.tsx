@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { setActiveOrgAndRedirect } from "@/lib/api";
 import { track } from "@/lib/track";
+import PortalFooter from "@/components/portal-footer";
 
 function AcceptInviteContent() {
   const searchParams = useSearchParams();
@@ -18,13 +19,16 @@ function AcceptInviteContent() {
 
   if (!invitationId) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Invalid Invitation</h1>
-          <p className="text-[var(--muted-foreground)]">
-            This invitation link is missing or invalid.
-          </p>
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-2">Invalid Invitation</h1>
+            <p className="text-[var(--muted-foreground)]">
+              This invitation link is missing or invalid.
+            </p>
+          </div>
         </div>
+        <PortalFooter />
       </div>
     );
   }
@@ -105,7 +109,8 @@ function AcceptInviteContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Join Project Portal</h1>
@@ -205,6 +210,8 @@ function AcceptInviteContent() {
           )}
         </p>
       </div>
+      </div>
+      <PortalFooter />
     </div>
   );
 }
