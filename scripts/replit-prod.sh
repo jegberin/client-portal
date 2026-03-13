@@ -31,7 +31,8 @@ node dist/main.js &
 API_PID=$!
 
 echo "==> Locating Next.js standalone server..."
-NEXT_SERVER=$(find "$ROOT_DIR/apps/web/.next/standalone" -maxdepth 3 -name "server.js" 2>/dev/null | head -1)
+NEXT_SERVER=$(find "$ROOT_DIR/apps/web/.next/standalone" -maxdepth 4 -name "server.js" \
+  -not -path "*/node_modules/*" 2>/dev/null | head -1)
 if [ -z "$NEXT_SERVER" ]; then
   echo "ERROR: Could not find Next.js standalone server.js — was the build step run?"
   kill $API_PID 2>/dev/null || true

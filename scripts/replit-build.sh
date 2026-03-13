@@ -32,11 +32,20 @@ cd "$ROOT_DIR/apps/web"
 NODE_ENV=production npx --no-install next build
 
 echo "==> Copying public assets into standalone output..."
+# In a monorepo, server.js is at standalone/apps/web/server.js so static
+# assets must be placed relative to that location, not the standalone root.
 STANDALONE_DIR="$ROOT_DIR/apps/web/.next/standalone"
-if [ -d "$STANDALONE_DIR" ]; then
-  cp -r "$ROOT_DIR/apps/web/public" "$STANDALONE_DIR/public" 2>/dev/null || true
-  mkdir -p "$STANDALONE_DIR/.next"
-  cp -r "$ROOT_DIR/apps/web/.next/static" "$STANDALONE_DIR/.next/static" 2>/dev/null || true
+SERVER_JS=$(find "$STANDALONE_DIR" -maxdepth 4 -name "server.js" \
+  -not -path "*/node_modules/*" 2>/dev/null | head -1)
+if [ -n "$SERVER_JS" ]; then
+  SERVER_DIR=$(dirname "$SERVER_JS")
+  echo "==> server.js found at: $SERVER_JS"
+  cp -r "$ROOT_DIR/apps/web/public" "$SERVER_DIR/public" 2>/dev/null || true
+  mkdir -p "$SERVER_DIR/.next"
+  cp -r "$ROOT_DIR/apps/web/.next/static" "$SERVER_DIR/.next/static" 2>/dev/null || true
+  echo "==> Static assets copied to $SERVER_DIR"
+else
+  echo "WARNING: Could not find standalone server.js to copy assets next to"
 fi
 
 echo "==> Build complete!"
