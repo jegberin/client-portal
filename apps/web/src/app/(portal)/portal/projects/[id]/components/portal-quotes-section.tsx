@@ -202,7 +202,7 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
                       </div>
                     )}
 
-                    {q.responseNote && q.status !== "sent" && (
+                    {q.responseNote && q.status !== "pending" && (
                       <div className="bg-[var(--muted)] rounded-lg p-3">
                         <p className="text-xs font-medium mb-1">Your Response</p>
                         <p className="text-sm">{q.responseNote}</p>

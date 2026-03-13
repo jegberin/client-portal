@@ -80,8 +80,8 @@ export class RespondQuoteDto {
   @MaxLength(2000)
   note?: string;
 
-  get resolvedResponse(): string {
-    return this.response || this.decision || "accepted";
+  get resolvedResponse(): string | undefined {
+    return this.response || this.decision || undefined;
   }
 }
 

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateQuoteDto, UpdateQuoteDto, QuoteListQueryDto, RespondQuoteDto } from "./quotes.dto";
 import { paginationArgs, paginatedResponse } from "../common";
@@ -144,6 +144,7 @@ export class QuotesService {
     if (!assignment) throw new ForbiddenException("You are not assigned to this project");
 
     const decision = dto.resolvedResponse;
+    if (!decision) throw new BadRequestException("Please provide a response (accepted or declined)");
     return this.prisma.quote.update({
       where: { id },
       data: {
