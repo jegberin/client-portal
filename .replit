@@ -1,0 +1,50 @@
+modules = ["nodejs-20", "bash", "web"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+BETTER_AUTH_SECRET = "07f91c4b9fd5e69e3bccae4def62645d4606b39919c22f5ba90021b3f8b010de"
+WEB_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
+API_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
+BETTER_AUTH_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
+NODE_ENV = "development"
+SKIP_DB_PUSH = "false"
+LOG_LEVEL = "info"
+PORT = "3001"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/replit-start.sh"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 80
