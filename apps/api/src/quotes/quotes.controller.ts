@@ -41,7 +41,8 @@ export class QuotesController {
     @UploadedFile() file: { originalname: string; buffer: Buffer; mimetype: string; size: number } | undefined,
     @CurrentOrg("id") orgId: string,
   ) {
-    const quote = await this.quotesService.create(dto, orgId);
+    let storageKey: string | undefined;
+    let safeName: string | undefined;
 
     if (file) {
       const ext = extname(file.originalname).toLowerCase();
@@ -52,9 +53,14 @@ export class QuotesController {
         throw new BadRequestException("File does not appear to be a valid PDF");
       }
 
-      const safeName = sanitizeFilename(file.originalname);
-      const storageKey = `${orgId}/quotes/${randomUUID()}-${safeName}`;
+      safeName = sanitizeFilename(file.originalname);
+      storageKey = `${orgId}/quotes/${randomUUID()}-${safeName}`;
       await this.storage.upload(storageKey, file.buffer, file.mimetype);
+    }
+
+    const quote = await this.quotesService.create(dto, orgId);
+
+    if (storageKey && safeName) {
       return this.quotesService.setPdf(quote.id, orgId, storageKey, safeName);
     }
 

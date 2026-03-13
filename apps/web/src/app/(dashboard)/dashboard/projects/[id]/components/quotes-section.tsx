@@ -263,7 +263,7 @@ export function QuotesSection({
               </button>
               <button
                 onClick={handleCreate}
-                disabled={submitting || !newTitle.trim()}
+                disabled={submitting}
                 className="px-4 py-1.5 bg-[var(--primary)] text-white rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? "Creating..." : "Create Quote"}
