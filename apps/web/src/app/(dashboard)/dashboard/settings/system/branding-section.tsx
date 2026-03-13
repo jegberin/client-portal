@@ -200,7 +200,7 @@ export function BrandingSection({
               Logo
             </div>
           )}
-          <span className="text-sm font-semibold flex-1">{orgName || "Atrium"}</span>
+          <span className="text-sm font-semibold flex-1">{orgName || "Crettyard Digital"}</span>
           <div className="flex gap-2">
             <div
               className="w-6 h-6 rounded"

@@ -28,8 +28,8 @@ export function StepOrgProfile({ orgName, onNext }: StepOrgProfileProps) {
   }, [orgName]);
 
   const [branding, setBranding] = useState<Branding>({
-    primaryColor: "#006b68",
-    accentColor: "#ff6b5c",
+    primaryColor: "#12B388",
+    accentColor: "#0C2366",
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);

@@ -118,7 +118,7 @@ export class SettingsService {
     const from: string =
       settings?.emailFrom ??
       this.config.get("EMAIL_FROM") ??
-      "noreply@atrium.local";
+      "noreply@crettyard.com";
 
     return {
       provider,

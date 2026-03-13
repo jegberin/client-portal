@@ -42,7 +42,7 @@ export function InvitationEmail({
             style={{
               display: "inline-block",
               padding: "12px 24px",
-              backgroundColor: "#006b68",
+              backgroundColor: "#12B388",
               color: "#ffffff",
               borderRadius: "6px",
               textDecoration: "none",

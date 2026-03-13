@@ -43,7 +43,7 @@ export function ProjectUpdateEmail({
               backgroundColor: "#f9fafb",
               padding: "12px 16px",
               borderRadius: "6px",
-              borderLeft: "3px solid #006b68",
+              borderLeft: "3px solid #12B388",
             }}
           >
             {updateContent}
@@ -53,7 +53,7 @@ export function ProjectUpdateEmail({
             style={{
               display: "inline-block",
               padding: "12px 24px",
-              backgroundColor: "#006b68",
+              backgroundColor: "#12B388",
               color: "#ffffff",
               borderRadius: "6px",
               textDecoration: "none",

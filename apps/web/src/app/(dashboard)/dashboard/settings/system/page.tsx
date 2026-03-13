@@ -45,8 +45,8 @@ const defaultSettings: SystemSettings = {
 export default function SystemSettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>(defaultSettings);
   const [branding, setBranding] = useState<Branding>({
-    primaryColor: "#006b68",
-    accentColor: "#ff6b5c",
+    primaryColor: "#12B388",
+    accentColor: "#0C2366",
   });
   const [orgName, setOrgName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -204,7 +204,7 @@ export default function SystemSettingsPage() {
             <h2 className="text-lg font-semibold">Email Configuration</h2>
           </div>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Configure how Atrium sends emails (invitations, password resets, etc.)
+            Configure how Crettyard Digital sends emails (invitations, password resets, etc.)
           </p>
 
           {/* Provider Selector */}

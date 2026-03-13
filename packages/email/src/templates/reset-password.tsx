@@ -18,7 +18,7 @@ export function ResetPasswordEmail({ url }: ResetPasswordEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Reset your Atrium password</Preview>
+      <Preview>Reset your Crettyard Digital password</Preview>
       <Body style={{ fontFamily: "sans-serif", padding: "40px 0" }}>
         <Container style={{ maxWidth: "480px", margin: "0 auto" }}>
           <Heading style={{ fontSize: "24px", marginBottom: "24px" }}>
@@ -33,7 +33,7 @@ export function ResetPasswordEmail({ url }: ResetPasswordEmailProps) {
             style={{
               display: "inline-block",
               padding: "12px 24px",
-              backgroundColor: "#006b68",
+              backgroundColor: "#12B388",
               color: "#ffffff",
               borderRadius: "6px",
               textDecoration: "none",
