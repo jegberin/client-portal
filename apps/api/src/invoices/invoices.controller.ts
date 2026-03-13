@@ -99,7 +99,7 @@ export class InvoicesController {
     }
     const { body, contentType } = await this.storage.download(invoice.pdfFileKey);
     const safeName = sanitizeFilename(invoice.pdfFileName || `${invoice.invoiceNumber}.pdf`);
-    res.setHeader("Content-Type", contentType || "application/pdf");
+    res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
     body.on("error", () => {
       if (!res.headersSent) res.status(500).end();
@@ -127,6 +127,14 @@ export class InvoicesController {
     if (!file) throw new BadRequestException("No file provided");
     const ext = extname(file.originalname).toLowerCase();
     if (ext !== ".pdf") throw new BadRequestException("Only PDF files are allowed");
+
+    const pdfMagic = Buffer.from([0x25, 0x50, 0x44, 0x46]); // %PDF
+    if (
+      file.buffer.length < 4 ||
+      !file.buffer.subarray(0, 4).equals(pdfMagic)
+    ) {
+      throw new BadRequestException("File does not appear to be a valid PDF");
+    }
 
     const invoice = await this.invoicesService.findOne(id, orgId);
 
@@ -167,7 +175,7 @@ export class InvoicesController {
     }
     const { body, contentType } = await this.storage.download(invoice.pdfFileKey);
     const safeName = sanitizeFilename(invoice.pdfFileName || `${invoice.invoiceNumber}.pdf`);
-    res.setHeader("Content-Type", contentType || "application/pdf");
+    res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
     body.on("error", () => {
       if (!res.headersSent) res.status(500).end();
