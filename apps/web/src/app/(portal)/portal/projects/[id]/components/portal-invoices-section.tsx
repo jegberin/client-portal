@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Receipt, Download, Eye } from "lucide-react";
+import { Receipt, Download, Eye, AlertCircle } from "lucide-react";
 
 interface LineItem {
   id: string;
@@ -39,6 +39,8 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   overdue: { bg: "#fee2e2", text: "#b91c1c" },
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 export function PortalInvoicesSection({
   projectId,
 }: {
@@ -48,11 +50,13 @@ export function PortalInvoicesSection({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { error: showError } = useToast();
 
   const loadInvoices = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await apiFetch<PaginatedResponse<InvoiceListItem>>(
         `/invoices/mine?page=${page}&limit=20`,
@@ -63,6 +67,8 @@ export function PortalInvoicesSection({
       setInvoices(projectInvoices);
       setTotalPages(res.meta.totalPages);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to load invoices";
+      setFetchError(msg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -76,10 +82,13 @@ export function PortalInvoicesSection({
   const handleDownloadPdf = async (invoiceId: string, invoiceNumber: string) => {
     try {
       const res = await fetch(
-        `/api/invoices/mine/${invoiceId}/pdf`,
+        `${API_URL}/api/invoices/mine/${invoiceId}/pdf`,
         { credentials: "include" },
       );
-      if (!res.ok) throw new Error("Download failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { message?: string }).message || `Error ${res.status}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -111,7 +120,17 @@ export function PortalInvoicesSection({
     <div>
       <h2 className="text-sm font-medium mb-3">Invoices</h2>
 
-      {invoices.length > 0 ? (
+      {fetchError && (
+        <div className="flex items-start gap-2 p-3 mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Could not load invoices</p>
+            <p className="text-xs mt-0.5 text-red-600">{fetchError}</p>
+          </div>
+        </div>
+      )}
+
+      {!fetchError && invoices.length > 0 ? (
         <div className="space-y-2">
           {invoices.map((inv) => {
             const colors = statusColors[inv.status] || statusColors.draft;
@@ -158,7 +177,7 @@ export function PortalInvoicesSection({
                       {hasPdf && (
                         <div className="flex items-center gap-3">
                           <a
-                            href={`/api/invoices/mine/${inv.id}/pdf`}
+                            href={`${API_URL}/api/invoices/mine/${inv.id}/pdf`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
@@ -228,14 +247,14 @@ export function PortalInvoicesSection({
             );
           })}
         </div>
-      ) : (
+      ) : !fetchError ? (
         <div className="text-center py-6">
           <Receipt size={32} className="mx-auto text-[var(--muted-foreground)] mb-2" />
           <p className="text-sm text-[var(--muted-foreground)]">
             No invoices yet.
           </p>
         </div>
-      )}
+      ) : null}
 
       {invoices.length > 0 && (
         <div className="mt-3">

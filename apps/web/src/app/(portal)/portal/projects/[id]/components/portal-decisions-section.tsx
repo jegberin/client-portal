@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { HelpCircle, CheckCircle2, Circle } from "lucide-react";
+import { HelpCircle, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 
 interface DecisionOption {
   id: string;
@@ -47,6 +47,7 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [openResponse, setOpenResponse] = useState("");
@@ -54,12 +55,15 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
 
   const loadDecisions = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: "20", projectId });
       const res = await apiFetch<PaginatedResponse<DecisionItem>>(`/decisions/mine?${params}`);
       setDecisions(res.data);
       setTotalPages(res.meta.totalPages);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to load decisions";
+      setFetchError(msg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -106,7 +110,17 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
     <div>
       <h2 className="text-sm font-medium mb-3">Decisions</h2>
 
-      {decisions.length > 0 ? (
+      {fetchError && (
+        <div className="flex items-start gap-2 p-3 mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Could not load decisions</p>
+            <p className="text-xs mt-0.5 text-red-600">{fetchError}</p>
+          </div>
+        </div>
+      )}
+
+      {!fetchError && decisions.length > 0 ? (
         <div className="space-y-2">
           {decisions.map((d) => {
             const colors = statusColors[d.status] || statusColors.open;
@@ -224,12 +238,12 @@ export function PortalDecisionsSection({ projectId }: { projectId: string }) {
             );
           })}
         </div>
-      ) : (
+      ) : !fetchError ? (
         <div className="text-center py-6">
           <HelpCircle size={32} className="mx-auto text-[var(--muted-foreground)] mb-2" />
           <p className="text-sm text-[var(--muted-foreground)]">No decisions to make.</p>
         </div>
-      )}
+      ) : null}
 
       {decisions.length > 0 && (
         <div className="mt-3">

@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { FileCheck, ThumbsUp, ThumbsDown, Download, Eye } from "lucide-react";
+import { FileCheck, ThumbsUp, ThumbsDown, Download, Eye, AlertCircle } from "lucide-react";
 
 interface QuoteItem {
   id: string;
@@ -31,24 +31,30 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   declined: { bg: "#fee2e2", text: "#b91c1c" },
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 export function PortalQuotesSection({ projectId }: { projectId: string }) {
   const { success, error: showError } = useToast();
   const [quotes, setQuotes] = useState<QuoteItem[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   const [responseNote, setResponseNote] = useState("");
 
   const loadQuotes = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: "20", projectId });
       const res = await apiFetch<PaginatedResponse<QuoteItem>>(`/quotes/mine?${params}`);
       setQuotes(res.data);
       setTotalPages(res.meta.totalPages);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to load quotes";
+      setFetchError(msg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -76,8 +82,11 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
 
   const handleDownloadPdf = async (quoteId: string, title: string) => {
     try {
-      const res = await fetch(`/api/quotes/mine/${quoteId}/pdf`, { credentials: "include" });
-      if (!res.ok) throw new Error("Download failed");
+      const res = await fetch(`${API_URL}/api/quotes/mine/${quoteId}/pdf`, { credentials: "include" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { message?: string }).message || `Error ${res.status}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -107,7 +116,17 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
     <div>
       <h2 className="text-sm font-medium mb-3">Quotes</h2>
 
-      {quotes.length > 0 ? (
+      {fetchError && (
+        <div className="flex items-start gap-2 p-3 mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Could not load quotes</p>
+            <p className="text-xs mt-0.5 text-red-600">{fetchError}</p>
+          </div>
+        </div>
+      )}
+
+      {!fetchError && quotes.length > 0 ? (
         <div className="space-y-2">
           {quotes.map((q) => {
             const colors = statusColors[q.status] || statusColors.pending;
@@ -149,7 +168,7 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
                     {hasPdf && (
                       <div className="flex items-center gap-3">
                         <a
-                          href={`/api/quotes/mine/${q.id}/pdf`}
+                          href={`${API_URL}/api/quotes/mine/${q.id}/pdf`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
@@ -214,12 +233,12 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
             );
           })}
         </div>
-      ) : (
+      ) : !fetchError ? (
         <div className="text-center py-6">
           <FileCheck size={32} className="mx-auto text-[var(--muted-foreground)] mb-2" />
           <p className="text-sm text-[var(--muted-foreground)]">No quotes yet.</p>
         </div>
-      )}
+      ) : null}
 
       {quotes.length > 0 && (
         <div className="mt-3">
