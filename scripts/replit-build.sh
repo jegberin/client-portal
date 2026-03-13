@@ -14,22 +14,22 @@ npm install --legacy-peer-deps
 
 echo "==> Building shared package..."
 cd "$SHARED_DIR"
-npx --no-install tsc --build
+"$ROOT_DIR/node_modules/.bin/tsc" --build
 
 echo "==> Generating Prisma client..."
 cd "$DB_DIR"
-npx --no-install prisma generate
+"$ROOT_DIR/node_modules/.bin/prisma" generate
 
 echo "==> Building database package..."
-npx --no-install tsc --build
+"$ROOT_DIR/node_modules/.bin/tsc" --build
 
 echo "==> Building API..."
 cd "$ROOT_DIR/apps/api"
-npx --no-install nest build
+"$ROOT_DIR/node_modules/.bin/nest" build
 
 echo "==> Building web (Next.js standalone)..."
 cd "$ROOT_DIR/apps/web"
-NODE_ENV=production npx --no-install next build
+NODE_ENV=production "$ROOT_DIR/node_modules/.bin/next" build
 
 echo "==> Copying public assets into standalone output..."
 # In a monorepo, server.js is at standalone/apps/web/server.js so static
