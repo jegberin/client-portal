@@ -8,9 +8,9 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DB_DIR="$ROOT_DIR/packages/database"
 SHARED_DIR="$ROOT_DIR/packages/shared"
 
-echo "==> Installing dependencies..."
+echo "==> Installing dependencies (including devDependencies for build tools)..."
 cd "$ROOT_DIR"
-npm install --legacy-peer-deps
+npm install --legacy-peer-deps --include=dev
 
 echo "==> Building shared package..."
 cd "$SHARED_DIR"
