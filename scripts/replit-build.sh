@@ -1,44 +1,35 @@
 #!/bin/bash
 set -e
 
+# Disable Corepack so it does not interfere with npm
+corepack disable 2>/dev/null || true
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DB_DIR="$ROOT_DIR/packages/database"
 SHARED_DIR="$ROOT_DIR/packages/shared"
 
-# Disable Corepack so it doesn't intercept npm/yarn/pnpm calls
-corepack disable 2>/dev/null || true
-
-# Ensure Bun is available — the deployment container may only have Node.js
-if ! command -v bun &>/dev/null; then
-  echo "==> Bun not found — installing..."
-  curl -fsSL https://bun.sh/install | bash
-  export PATH="$HOME/.bun/bin:$PATH"
-fi
-echo "==> Using Bun $(bun --version)"
-export PATH="$HOME/.bun/bin:$PATH"
-
-echo "==> Installing dependencies with Bun..."
+echo "==> Installing dependencies..."
 cd "$ROOT_DIR"
-bun install --frozen-lockfile
+npm install --legacy-peer-deps
 
 echo "==> Building shared package..."
 cd "$SHARED_DIR"
-bun x tsc --build
+npx --no-install tsc --build
 
 echo "==> Generating Prisma client..."
 cd "$DB_DIR"
-bun x prisma generate
+npx --no-install prisma generate
 
 echo "==> Building database package..."
-bun x tsc --build
+npx --no-install tsc --build
 
 echo "==> Building API..."
 cd "$ROOT_DIR/apps/api"
-bun x nest build
+npx --no-install nest build
 
 echo "==> Building web (Next.js standalone)..."
 cd "$ROOT_DIR/apps/web"
-NODE_ENV=production bun x next build
+NODE_ENV=production npx --no-install next build
 
 echo "==> Copying public assets into standalone output..."
 STANDALONE_DIR="$ROOT_DIR/apps/web/.next/standalone"

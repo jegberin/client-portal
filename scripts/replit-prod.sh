@@ -3,13 +3,8 @@ set -e
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Ensure Bun is available — the deployment container may only have Node.js
-if ! command -v bun &>/dev/null; then
-  echo "==> Bun not found — installing..."
-  curl -fsSL https://bun.sh/install | bash
-  export PATH="$HOME/.bun/bin:$PATH"
-fi
-export PATH="$HOME/.bun/bin:$PATH"
+# Disable Corepack so it does not interfere with npm
+corepack disable 2>/dev/null || true
 
 export NODE_ENV=production
 
@@ -28,7 +23,7 @@ fi
 
 echo "==> Applying database schema..."
 cd "$ROOT_DIR/packages/database"
-bun x prisma db push --skip-generate 2>&1 | grep -v "^$" | tail -5 || echo "Warning: db push failed (non-fatal)"
+npx --no-install prisma db push --skip-generate 2>&1 | grep -v "^$" | tail -5 || echo "Warning: db push failed (non-fatal)"
 
 echo "==> Starting API on :3001..."
 cd "$ROOT_DIR/apps/api"
