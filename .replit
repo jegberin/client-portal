@@ -51,6 +51,6 @@ localPort = 5000
 externalPort = 80
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["bash", "scripts/replit-prod.sh"]
-build = ["bash", "scripts/replit-build.sh"]
+deploymentTarget = "cloudrun"
+build = ["sh", "-c", "scripts/replit-build.sh"]
+run = ["sh", "-c", "scripts/replit-prod.sh"]

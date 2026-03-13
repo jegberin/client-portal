@@ -5,6 +5,10 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DB_DIR="$ROOT_DIR/packages/database"
 SHARED_DIR="$ROOT_DIR/packages/shared"
 
+echo "==> Installing dependencies with Bun..."
+cd "$ROOT_DIR"
+bun install --frozen-lockfile
+
 echo "==> Building shared package..."
 cd "$SHARED_DIR"
 bunx tsc --build
