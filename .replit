@@ -13,6 +13,7 @@ SKIP_DB_PUSH = "false"
 LOG_LEVEL = "info"
 PORT = "3001"
 EMAIL_FROM = "clientportal@digital.crettyard.com"
+STORAGE_PROVIDER = "r2"
 
 [userenv.development]
 WEB_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
