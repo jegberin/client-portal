@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import {
   IsString,
   IsNotEmpty,
@@ -20,6 +21,12 @@ export class CreateQuoteDto {
   @MaxLength(5000)
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(5000)
+  notes?: string;
+
+  @Transform(({ value }) => (typeof value === "string" ? parseInt(value, 10) : value))
   @IsInt()
   @Min(0)
   amount!: number;
@@ -53,13 +60,23 @@ export class UpdateQuoteDto {
 
 export class RespondQuoteDto {
   @IsString()
+  @IsOptional()
   @IsIn(["accepted", "declined"])
-  response!: string;
+  response?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(["accepted", "declined"])
+  decision?: string;
 
   @IsString()
   @IsOptional()
   @MaxLength(2000)
   note?: string;
+
+  get resolvedResponse(): string {
+    return this.response || this.decision || "accepted";
+  }
 }
 
 export class QuoteListQueryDto extends PaginationQueryDto {

@@ -59,6 +59,16 @@ export class DecisionsController {
     return this.decisionsService.respond(id, userId, orgId, dto);
   }
 
+  @Post(":id/respond")
+  respondById(
+    @Param("id") id: string,
+    @CurrentUser("id") userId: string,
+    @CurrentOrg("id") orgId: string,
+    @Body() dto: RespondDecisionDto,
+  ) {
+    return this.decisionsService.respond(id, userId, orgId, dto);
+  }
+
   @Get(":id")
   @Roles("owner", "admin")
   findOne(@Param("id") id: string, @CurrentOrg("id") orgId: string) {

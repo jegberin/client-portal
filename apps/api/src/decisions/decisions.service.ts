@@ -185,19 +185,30 @@ export class DecisionsService {
 
     try {
       if (decision.type === "multiple_choice") {
-        if (!dto.selectedOptionId) throw new BadRequestException("Please select an option");
-        const option = decision.options.find((o) => o.id === dto.selectedOptionId);
-        if (!option) throw new BadRequestException("Invalid option");
+        let choiceLabel: string | undefined;
+
+        if (dto.selectedOptionId) {
+          const option = decision.options.find((o) => o.id === dto.selectedOptionId);
+          if (!option) throw new BadRequestException("Invalid option");
+          choiceLabel = option.label;
+        } else if (dto.choice) {
+          const option = decision.options.find((o) => o.label === dto.choice);
+          if (!option) throw new BadRequestException("Invalid choice");
+          choiceLabel = option.label;
+        }
+
+        if (!choiceLabel) throw new BadRequestException("Please select an option");
 
         await this.prisma.decisionResponse.create({
           data: {
             decisionId: id,
             userId,
-            choice: option.label,
+            choice: choiceLabel,
           },
         });
-      } else if (decision.type === "open") {
-        if (!dto.openResponse || !dto.openResponse.trim()) {
+      } else if (decision.type === "open" || decision.type === "open_question") {
+        const responseText = dto.openResponse || dto.answer;
+        if (!responseText || !responseText.trim()) {
           throw new BadRequestException("Please provide a response");
         }
 
@@ -205,7 +216,7 @@ export class DecisionsService {
           data: {
             decisionId: id,
             userId,
-            answer: dto.openResponse,
+            answer: responseText,
           },
         });
       }

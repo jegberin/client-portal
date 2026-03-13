@@ -16,7 +16,7 @@ export class QuotesService {
     return this.prisma.quote.create({
       data: {
         title: dto.title,
-        description: dto.description,
+        description: dto.description || dto.notes,
         amount: dto.amount,
         projectId: dto.projectId,
         organizationId: orgId,
@@ -143,10 +143,11 @@ export class QuotesService {
     });
     if (!assignment) throw new ForbiddenException("You are not assigned to this project");
 
+    const decision = dto.resolvedResponse;
     return this.prisma.quote.update({
       where: { id },
       data: {
-        status: dto.response,
+        status: decision,
         respondedById: userId,
         respondedAt: new Date(),
         responseNote: dto.note || null,

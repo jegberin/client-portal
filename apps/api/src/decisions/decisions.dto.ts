@@ -71,8 +71,17 @@ export class RespondDecisionDto {
 
   @IsString()
   @IsOptional()
+  choice?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(5000)
   openResponse?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(5000)
+  answer?: string;
 }
 
 export class DecisionListQueryDto extends PaginationQueryDto {

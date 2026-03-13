@@ -35,8 +35,30 @@ export class QuotesController {
 
   @Post()
   @Roles("owner", "admin")
-  create(@Body() dto: CreateQuoteDto, @CurrentOrg("id") orgId: string) {
-    return this.quotesService.create(dto, orgId);
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 50 * 1024 * 1024 } }))
+  async create(
+    @Body() dto: CreateQuoteDto,
+    @UploadedFile() file: { originalname: string; buffer: Buffer; mimetype: string; size: number } | undefined,
+    @CurrentOrg("id") orgId: string,
+  ) {
+    const quote = await this.quotesService.create(dto, orgId);
+
+    if (file) {
+      const ext = extname(file.originalname).toLowerCase();
+      if (ext !== ".pdf") throw new BadRequestException("Only PDF files are allowed");
+
+      const pdfMagic = Buffer.from([0x25, 0x50, 0x44, 0x46]);
+      if (file.buffer.length < 4 || !file.buffer.subarray(0, 4).equals(pdfMagic)) {
+        throw new BadRequestException("File does not appear to be a valid PDF");
+      }
+
+      const safeName = sanitizeFilename(file.originalname);
+      const storageKey = `${orgId}/quotes/${randomUUID()}-${safeName}`;
+      await this.storage.upload(storageKey, file.buffer, file.mimetype);
+      return this.quotesService.setPdf(quote.id, orgId, storageKey, safeName);
+    }
+
+    return quote;
   }
 
   @Get()
@@ -84,6 +106,16 @@ export class QuotesController {
       if (!res.headersSent) res.status(500).end();
     });
     body.pipe(res);
+  }
+
+  @Post(":id/respond")
+  respondById(
+    @Param("id") id: string,
+    @CurrentUser("id") userId: string,
+    @CurrentOrg("id") orgId: string,
+    @Body() dto: RespondQuoteDto,
+  ) {
+    return this.quotesService.respond(id, userId, orgId, dto);
   }
 
   @Get(":id")
