@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DB_DIR="$ROOT_DIR/packages/database"
 SHARED_DIR="$ROOT_DIR/packages/shared"
 
+# Disable Corepack so it doesn't intercept npm/yarn/pnpm calls
+corepack disable 2>/dev/null || true
+
 # Ensure Bun is available — the deployment container may only have Node.js
 if ! command -v bun &>/dev/null; then
   echo "==> Bun not found — installing..."
