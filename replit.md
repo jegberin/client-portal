@@ -1,12 +1,20 @@
-# Atrium — Replit Environment
+# Crettyard Digital — Client Portal (Replit)
 
 ## Overview
-Atrium is a client portal for agencies and freelancers. It's a monorepo with:
+Crettyard Digital client portal for agencies and freelancers. Monorepo with:
 - **Frontend**: Next.js 15 + React 19 + Tailwind CSS (`apps/web`, port 5000)
 - **Backend**: NestJS 11 + Prisma (`apps/api`, port 3001)
 - **Database**: Replit PostgreSQL (via Prisma ORM)
 - **Package manager**: Bun (workspace monorepo)
 - **Build tool**: Turborepo
+
+## Branding
+- **Primary color**: `#12B388` (teal green)
+- **Accent/foreground color**: `#0C2366` (navy)
+- **Font**: Inter (Google Fonts)
+- **Border radius**: 4px
+- **Logo**: `apps/web/public/logo.png`
+- **Favicon**: `apps/web/public/icon.png` + `apps/web/src/app/icon.png`
 
 ## Running the App
 The "Start application" workflow runs both services:
@@ -20,19 +28,27 @@ This script:
 4. Pushes the Prisma schema to the database
 5. Starts both services via Turborepo
 
+## Admin Bootstrap
+To create the admin account (idempotent):
+```
+bash scripts/seed-admin.sh
+```
+Default credentials: `info@crettyard.com` / `eb9n2V2%ZKAX`, org "Crettyard Digital".
+
 ## Key Ports
 - **5000** — Next.js frontend (webview)
 - **3001** — NestJS API backend
 
 ## Environment Variables (set in Replit Secrets)
 - `DATABASE_URL` — Replit PostgreSQL connection string (auto-set)
-- `BETTER_AUTH_SECRET` — 64-char hex secret for session signing (auto-generated)
+- `BETTER_AUTH_SECRET` — 64-char hex secret for session signing
 - `WEB_URL` / `API_URL` / `BETTER_AUTH_URL` — set to Replit dev domain
 - `NODE_ENV` — "development"
 - `PORT` — 3001 (API port)
+- `RESEND_API_KEY` — Resend API key for email delivery
+- `EMAIL_FROM` — Sender address (`clientportal@digital.crettyard.com`)
 
 Optional:
-- `RESEND_API_KEY` — for email sending
 - `STRIPE_*` — for billing features
 - `S3_*` — for S3-compatible file storage (default: local storage)
 
@@ -48,3 +64,7 @@ Optional:
 4. `packages/database` and `packages/shared` tsconfig updated to output CommonJS
 5. Package `main`/`types` fields updated to point to compiled dist/ output
 6. `scripts/replit-start.sh` created as the unified startup script
+7. All "Atrium" references rebranded to "Crettyard Digital"
+8. Brand colors updated from `#006b68`/`#ff6b5c` to `#12B388`/`#0C2366`
+9. Email templates updated with new brand colors and name
+10. `scripts/seed-admin.sh` created for reproducible admin bootstrap
