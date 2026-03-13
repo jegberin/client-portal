@@ -131,7 +131,7 @@ export default async function DashboardLayout({
             />
           )}
           <span className="font-bold text-lg leading-none truncate">
-            {orgName || "Atrium"}
+            {orgName || "Crettyard Digital"}
           </span>
         </div>
         <SidebarNav />

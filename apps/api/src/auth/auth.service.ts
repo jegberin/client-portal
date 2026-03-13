@@ -110,7 +110,7 @@ export class AuthService {
         magicLink({
           sendMagicLink: async ({ email, url }) => {
             const html = await render(MagicLinkEmail({ url }));
-            await this.mail.send(email, "Sign in to Atrium", html);
+            await this.mail.send(email, "Sign in to Crettyard Digital", html);
           },
         }),
       ],

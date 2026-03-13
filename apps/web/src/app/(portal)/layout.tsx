@@ -72,8 +72,8 @@ export default async function PortalLayout({
     <div
       style={
         {
-          "--primary": branding?.primaryColor || "#006b68",
-          "--accent": branding?.accentColor || "#ff6b5c",
+          "--primary": branding?.primaryColor || "#12B388",
+          "--accent": branding?.accentColor || "#0C2366",
         } as React.CSSProperties
       }
     >
@@ -82,7 +82,7 @@ export default async function PortalLayout({
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={logoSrc || "/icon.png"} alt="Logo" className="h-8 w-8 object-contain" />
         )}
-        <span className="font-semibold flex-1">{orgName || "Atrium"}</span>
+        <span className="font-semibold flex-1">{orgName || "Crettyard Digital"}</span>
         <Link
           href="/portal"
           className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"

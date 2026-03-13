@@ -4,8 +4,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Atrium",
-  description: "Client portal for agencies and freelancers",
+  title: "Crettyard Digital",
+  description: "Client portal",
 };
 
 function getTrackers(): Array<Record<string, string>> {

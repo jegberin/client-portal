@@ -60,7 +60,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Sign in to Atrium</h1>
+          <h1 className="text-2xl font-bold">Sign in to Crettyard Digital</h1>
           <p className="text-[var(--muted-foreground)] mt-2">
             Enter your credentials to continue
           </p>
