@@ -9,14 +9,22 @@ channel = "stable-25_05"
 
 [userenv.shared]
 BETTER_AUTH_SECRET = "07f91c4b9fd5e69e3bccae4def62645d4606b39919c22f5ba90021b3f8b010de"
-WEB_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
-API_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
-BETTER_AUTH_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
-NODE_ENV = "development"
 SKIP_DB_PUSH = "false"
 LOG_LEVEL = "info"
 PORT = "3001"
 EMAIL_FROM = "clientportal@digital.crettyard.com"
+
+[userenv.development]
+WEB_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
+API_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
+BETTER_AUTH_URL = "https://0be09ff1-e8e9-47e5-bd8c-193e84031ec3-00-36fvvjz209io1.kirk.replit.dev"
+NODE_ENV = "development"
+
+[userenv.production]
+WEB_URL = "https://clients.digital.crettyard.com"
+API_URL = "https://clients.digital.crettyard.com"
+BETTER_AUTH_URL = "https://clients.digital.crettyard.com"
+NODE_ENV = "production"
 
 [workflows]
 runButton = "Project"
