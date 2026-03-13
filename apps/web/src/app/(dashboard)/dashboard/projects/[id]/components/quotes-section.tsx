@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Plus, Trash2, FileCheck, Send, Upload, Download, Eye, FileText } from "lucide-react";
+import { Plus, Trash2, FileCheck, Upload, Download, Eye, FileText } from "lucide-react";
 
 interface QuoteItem {
   id: string;
@@ -28,8 +28,7 @@ interface PaginatedResponse<T> {
 }
 
 const statusColors: Record<string, { bg: string; text: string }> = {
-  draft: { bg: "#e5e7eb", text: "#374151" },
-  sent: { bg: "#dbeafe", text: "#1d4ed8" },
+  pending: { bg: "#dbeafe", text: "#1d4ed8" },
   accepted: { bg: "#dcfce7", text: "#15803d" },
   declined: { bg: "#fee2e2", text: "#b91c1c" },
 };
@@ -114,19 +113,6 @@ export function QuotesSection({
       showError(err instanceof Error ? err.message : "Failed to create quote");
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleStatusChange = async (id: string, status: string) => {
-    try {
-      await apiFetch(`/quotes/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
-      loadQuotes();
-      success(`Quote marked as ${status}`);
-    } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to update quote");
     }
   };
 
@@ -294,7 +280,7 @@ export function QuotesSection({
       ) : quotes.length > 0 ? (
         <div className="space-y-2">
           {quotes.map((q) => {
-            const colors = statusColors[q.status] || statusColors.draft;
+            const colors = statusColors[q.status] || statusColors.pending;
             const isExpanded = expandedId === q.id;
             const hasPdf = !!q.pdfFileKey;
             return (
@@ -355,15 +341,6 @@ export function QuotesSection({
                     )}
 
                     <div className="flex items-center gap-2 pt-2 flex-wrap">
-                      {q.status === "draft" && !isArchived && (
-                        <button
-                          onClick={() => handleStatusChange(q.id, "sent")}
-                          className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg text-xs hover:opacity-90"
-                        >
-                          <Send size={12} />
-                          Send to Client
-                        </button>
-                      )}
                       {!isArchived && (
                         <label className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline cursor-pointer">
                           <Upload size={12} />

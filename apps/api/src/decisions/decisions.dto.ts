@@ -40,7 +40,7 @@ export class CreateDecisionDto {
 
   @IsArray()
   @ArrayMinSize(2)
-  @ArrayMaxSize(20)
+  @ArrayMaxSize(5)
   @ValidateNested({ each: true })
   @Type(() => DecisionOptionDto)
   @IsOptional()

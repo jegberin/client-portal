@@ -349,7 +349,7 @@ model Quote {
   title          String
   description    String?
   amount         Int      @default(0)
-  status         String   @default("draft")
+  status         String   @default("pending")
   pdfFileKey     String?
   pdfFileName    String?
   projectId      String

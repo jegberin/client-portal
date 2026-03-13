@@ -26,7 +26,7 @@ interface PaginatedResponse<T> {
 }
 
 const statusColors: Record<string, { bg: string; text: string }> = {
-  sent: { bg: "#dbeafe", text: "#1d4ed8" },
+  pending: { bg: "#dbeafe", text: "#1d4ed8" },
   accepted: { bg: "#dcfce7", text: "#15803d" },
   declined: { bg: "#fee2e2", text: "#b91c1c" },
 };
@@ -110,9 +110,9 @@ export function PortalQuotesSection({ projectId }: { projectId: string }) {
       {quotes.length > 0 ? (
         <div className="space-y-2">
           {quotes.map((q) => {
-            const colors = statusColors[q.status] || statusColors.sent;
+            const colors = statusColors[q.status] || statusColors.pending;
             const isExpanded = expandedId === q.id;
-            const isSent = q.status === "sent";
+            const isSent = q.status === "pending";
             const hasPdf = !!q.pdfFileKey;
 
             return (

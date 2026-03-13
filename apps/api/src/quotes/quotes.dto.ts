@@ -12,9 +12,9 @@ import { PaginationQueryDto } from "../common";
 
 export class CreateQuoteDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(200)
-  title!: string;
+  title?: string;
 
   @IsString()
   @IsOptional()
@@ -29,7 +29,8 @@ export class CreateQuoteDto {
   @Transform(({ value }) => (typeof value === "string" ? parseInt(value, 10) : value))
   @IsInt()
   @Min(0)
-  amount!: number;
+  @IsOptional()
+  amount?: number;
 
   @IsString()
   @IsNotEmpty()
@@ -47,6 +48,11 @@ export class UpdateQuoteDto {
   @MaxLength(5000)
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(5000)
+  notes?: string;
+
   @IsInt()
   @Min(0)
   @IsOptional()
@@ -54,7 +60,7 @@ export class UpdateQuoteDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(["draft", "sent", "accepted", "declined"])
+  @IsIn(["pending", "accepted", "declined"])
   status?: string;
 }
 
@@ -86,6 +92,6 @@ export class QuoteListQueryDto extends PaginationQueryDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(["draft", "sent", "accepted", "declined"])
+  @IsIn(["pending", "accepted", "declined"])
   status?: string;
 }

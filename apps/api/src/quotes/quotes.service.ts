@@ -15,9 +15,10 @@ export class QuotesService {
 
     return this.prisma.quote.create({
       data: {
-        title: dto.title,
-        description: dto.description || dto.notes,
-        amount: dto.amount,
+        title: dto.title || "Untitled Quote",
+        description: dto.description || dto.notes || null,
+        amount: dto.amount || 0,
+        status: "pending",
         projectId: dto.projectId,
         organizationId: orgId,
       },
@@ -54,7 +55,7 @@ export class QuotesService {
 
   async findOneMine(id: string, userId: string, orgId: string) {
     const quote = await this.prisma.quote.findFirst({
-      where: { id, organizationId: orgId, status: { not: "draft" } },
+      where: { id, organizationId: orgId },
     });
     if (!quote) throw new NotFoundException("Quote not found");
 
@@ -76,7 +77,7 @@ export class QuotesService {
       where: { id },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
-        ...(dto.description !== undefined && { description: dto.description }),
+        ...((dto.description !== undefined || dto.notes !== undefined) && { description: dto.description || dto.notes }),
         ...(dto.amount !== undefined && { amount: dto.amount }),
         ...(dto.status !== undefined && { status: dto.status }),
       },
@@ -117,7 +118,6 @@ export class QuotesService {
     const where = {
       projectId,
       organizationId: orgId,
-      status: { not: "draft" },
     };
 
     const [data, total] = await Promise.all([
@@ -134,9 +134,9 @@ export class QuotesService {
 
   async respond(id: string, userId: string, orgId: string, dto: RespondQuoteDto) {
     const quote = await this.prisma.quote.findFirst({
-      where: { id, organizationId: orgId, status: "sent" },
+      where: { id, organizationId: orgId, status: "pending" },
     });
-    if (!quote) throw new NotFoundException("Quote not found or not in sent status");
+    if (!quote) throw new NotFoundException("Quote not found or not in pending status");
 
     const assignment = await this.prisma.projectClient.findFirst({
       where: { projectId: quote.projectId, userId },
