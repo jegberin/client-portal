@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.4.0",
-    "@atrium/shared": "workspace:*"
+    "@atrium/shared": "*"
   },
   "devDependencies": {
     "prisma": "^6.4.0"

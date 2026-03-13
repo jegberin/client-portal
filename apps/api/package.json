@@ -12,9 +12,9 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@atrium/database": "workspace:*",
-    "@atrium/email": "workspace:*",
-    "@atrium/shared": "workspace:*",
+    "@atrium/database": "*",
+    "@atrium/email": "*",
+    "@atrium/shared": "*",
     "@aws-sdk/client-s3": "^3.1005.0",
     "@aws-sdk/s3-request-presigner": "^3.1005.0",
     "@nestjs/common": "^11.0.0",
