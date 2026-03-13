@@ -18,6 +18,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { PortalInvoicesSection } from "./components/portal-invoices-section";
+import { PortalQuotesSection } from "./components/portal-quotes-section";
+import { PortalDecisionsSection } from "./components/portal-decisions-section";
 import { linkify } from "@/lib/linkify";
 
 interface FileRecord {
@@ -88,6 +90,8 @@ const tabs = [
   { id: "tasks", label: "Tasks" },
   { id: "files", label: "Files" },
   { id: "invoices", label: "Invoices" },
+  { id: "quotes", label: "Quotes" },
+  { id: "decisions", label: "Decisions" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -461,6 +465,16 @@ export default function PortalProjectDetailPage() {
         {/* Invoices Tab */}
         {activeTab === "invoices" && (
           <PortalInvoicesSection projectId={id} />
+        )}
+
+        {/* Quotes Tab */}
+        {activeTab === "quotes" && (
+          <PortalQuotesSection projectId={id} />
+        )}
+
+        {/* Decisions Tab */}
+        {activeTab === "decisions" && (
+          <PortalDecisionsSection projectId={id} />
         )}
       </div>
     </div>

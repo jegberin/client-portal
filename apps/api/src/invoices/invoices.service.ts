@@ -234,6 +234,19 @@ export class InvoicesService {
     return updated;
   }
 
+  async setPdf(id: string, orgId: string, pdfFileKey: string | null, pdfFileName: string | null) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id, organizationId: orgId },
+    });
+    if (!invoice) throw new NotFoundException("Invoice not found");
+
+    return this.prisma.invoice.update({
+      where: { id, organizationId: orgId },
+      data: { pdfFileKey, pdfFileName },
+      include: { lineItems: true },
+    });
+  }
+
   async remove(id: string, orgId: string) {
     const invoice = await this.prisma.invoice.findFirst({
       where: { id, organizationId: orgId },

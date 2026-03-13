@@ -20,6 +20,8 @@ interface InvoiceListItem {
   status: string;
   dueDate?: string | null;
   notes?: string | null;
+  pdfFileKey?: string | null;
+  pdfFileName?: string | null;
   projectId?: string | null;
   lineItems: LineItem[];
   createdAt: string;
@@ -55,7 +57,6 @@ export function PortalInvoicesSection({
       const res = await apiFetch<PaginatedResponse<InvoiceListItem>>(
         `/invoices/mine?page=${page}&limit=20`,
       );
-      // Filter to this project client-side
       const projectInvoices = res.data.filter(
         (inv) => inv.projectId === projectId,
       );
@@ -75,7 +76,7 @@ export function PortalInvoicesSection({
   const handleDownloadPdf = async (invoiceId: string, invoiceNumber: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/invoices/mine/${invoiceId}/pdf`,
+        `/api/invoices/mine/${invoiceId}/pdf`,
         { credentials: "include" },
       );
       if (!res.ok) throw new Error("Download failed");
@@ -119,6 +120,7 @@ export function PortalInvoicesSection({
               0,
             );
             const isExpanded = expandedId === inv.id;
+            const hasPdf = !!inv.pdfFileKey;
 
             return (
               <div key={inv.id} className="border border-[var(--border)] rounded-lg">
@@ -153,13 +155,15 @@ export function PortalInvoicesSection({
                           Due: {new Date(inv.dueDate).toLocaleDateString()}
                         </p>
                       ) : <div />}
-                      <button
-                        onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                        className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
-                      >
-                        <Download size={14} />
-                        Download PDF
-                      </button>
+                      {hasPdf && (
+                        <button
+                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                          className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline"
+                        >
+                          <Download size={14} />
+                          Download PDF
+                        </button>
+                      )}
                     </div>
 
                     <div className="border border-[var(--border)] rounded-lg overflow-hidden">

@@ -15,6 +15,8 @@ import { TasksSection } from "./components/tasks-section";
 import { UpdatesSection } from "./components/updates-section";
 import { FilesSection } from "./components/files-section";
 import { InvoicesSection } from "./components/invoices-section";
+import { QuotesSection } from "./components/quotes-section";
+import { DecisionsSection } from "./components/decisions-section";
 import { NotesSection } from "./components/notes-section";
 
 interface FileRecord {
@@ -64,6 +66,8 @@ const tabs = [
   { id: "tasks", label: "Tasks" },
   { id: "files", label: "Files" },
   { id: "invoices", label: "Invoices" },
+  { id: "quotes", label: "Quotes" },
+  { id: "decisions", label: "Decisions" },
   { id: "notes", label: "Notes" },
 ] as const;
 
@@ -396,6 +400,12 @@ export default function ProjectDetailPage() {
         )}
         {activeTab === "invoices" && (
           <InvoicesSection projectId={id} isArchived={isArchived} />
+        )}
+        {activeTab === "quotes" && (
+          <QuotesSection projectId={id} isArchived={isArchived} />
+        )}
+        {activeTab === "decisions" && (
+          <DecisionsSection projectId={id} isArchived={isArchived} />
         )}
         {activeTab === "notes" && (
           <NotesSection projectId={id} isArchived={isArchived} />

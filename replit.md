@@ -57,6 +57,22 @@ Optional:
 - `packages/database` — Prisma client wrapper (builds to CommonJS dist/)
 - `packages/email` — React Email templates
 
+## Feature Additions
+- **Invoices**: Euro currency (EUR), PDF file upload/download (replaces generated PDFs), admin + portal UI
+- **Quotes**: Admin can create/send quotes; clients can accept/decline with optional notes
+- **Decisions**: Admin creates multiple-choice or open questions; clients respond via portal
+
+## API Modules
+- `apps/api/src/invoices/` — Invoice CRUD + PDF upload/download endpoints
+- `apps/api/src/quotes/` — Quote CRUD + client respond endpoint
+- `apps/api/src/decisions/` — Decision CRUD + client respond endpoint
+
+## Database Schema (key models)
+- `Invoice` — with `pdfFileKey`, `pdfFileName` for uploaded PDFs
+- `Quote` — status: draft → sent → accepted/declined
+- `Decision` — type: multiple_choice or open; status: open → closed
+- `DecisionOption` — options for multiple-choice decisions
+
 ## Replit-Specific Changes Made
 1. Next.js dev/start scripts updated to use port 5000 and host 0.0.0.0
 2. `allowedDevOrigins: ["*"]` added to next.config.ts for Replit proxy

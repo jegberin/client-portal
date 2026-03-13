@@ -135,12 +135,14 @@ model Project {
   updatedAt      DateTime  @updatedAt
   archivedAt     DateTime?
 
-  files    File[]
-  clients  ProjectClient[]
-  updates  ProjectUpdate[]
-  tasks    Task[]
-  invoices Invoice[]
-  notes    ProjectNote[]
+  files     File[]
+  clients   ProjectClient[]
+  updates   ProjectUpdate[]
+  tasks     Task[]
+  invoices  Invoice[]
+  notes     ProjectNote[]
+  quotes    Quote[]
+  decisions Decision[]
 
   @@index([organizationId])
   @@map("project")
@@ -224,6 +226,8 @@ model Invoice {
   status         String            @default("draft")
   dueDate        DateTime?
   notes          String?
+  pdfFileKey     String?
+  pdfFileName    String?
   projectId      String?
   organizationId String
   createdAt      DateTime          @default(now())
@@ -335,6 +339,65 @@ model ProjectStatus {
   @@unique([organizationId, slug])
   @@index([organizationId])
   @@map("project_status")
+}
+
+// ─── Quotes ───
+
+model Quote {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  amount         Int      @default(0)
+  status         String   @default("draft")
+  projectId      String
+  organizationId String
+  respondedById  String?
+  respondedAt    DateTime?
+  responseNote   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([organizationId])
+  @@map("quote")
+}
+
+// ─── Decisions ───
+
+model Decision {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  type           String   @default("multiple_choice")
+  status         String   @default("open")
+  openResponse   String?
+  projectId      String
+  organizationId String
+  respondedById  String?
+  respondedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  options DecisionOption[]
+
+  @@index([projectId])
+  @@index([organizationId])
+  @@map("decision")
+}
+
+model DecisionOption {
+  id         String  @id @default(cuid())
+  label      String
+  selected   Boolean @default(false)
+  decisionId String
+
+  decision Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@index([decisionId])
+  @@map("decision_option")
 }
 
 // ─── Billing / Subscription tables ───

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useConfirm } from "@/components/confirm-modal";
 import { useToast } from "@/components/toast";
 import { Pagination } from "@/components/pagination";
-import { Plus, Trash2, Receipt, Download } from "lucide-react";
+import { Plus, Trash2, Receipt, Download, Upload, FileText } from "lucide-react";
 import { track } from "@/lib/track";
 
 interface LineItem {
@@ -22,14 +22,10 @@ interface InvoiceListItem {
   status: string;
   dueDate?: string | null;
   notes?: string | null;
+  pdfFileKey?: string | null;
+  pdfFileName?: string | null;
   lineItems: LineItem[];
   createdAt: string;
-}
-
-interface InvoiceStats {
-  outstandingAmount: number;
-  totalInvoices: number;
-  paidAmount: number;
 }
 
 interface PaginatedResponse<T> {
@@ -61,20 +57,22 @@ export function InvoicesSection({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  // Create form state
   const [newDueDate, setNewDueDate] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [newLineItems, setNewLineItems] = useState<LineItem[]>([
     { description: "", quantity: 1, unitPrice: 0 },
   ]);
+  const [newPdfFile, setNewPdfFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const newPdfRef = useRef<HTMLInputElement>(null);
 
-  // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editItems, setEditItems] = useState<LineItem[]>([]);
   const [editNotes, setEditNotes] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [uploadingPdfFor, setUploadingPdfFor] = useState<string | null>(null);
 
   const loadInvoices = useCallback(async () => {
     setLoading(true);
@@ -112,7 +110,6 @@ export function InvoicesSection({
       0,
     );
 
-  // Create handlers
   const updateNewLineItem = (index: number, field: keyof LineItem, value: string | number) => {
     setNewLineItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
@@ -122,7 +119,7 @@ export function InvoicesSection({
   const handleCreate = async () => {
     setSubmitting(true);
     try {
-      await apiFetch("/invoices", {
+      const created = await apiFetch<InvoiceListItem>("/invoices", {
         method: "POST",
         body: JSON.stringify({
           projectId,
@@ -132,10 +129,27 @@ export function InvoicesSection({
         }),
       });
       track("invoice_created", { amount: newTotal });
+
+      if (newPdfFile && created.id) {
+        const formData = new FormData();
+        formData.append("file", newPdfFile);
+        const pdfRes = await fetch(`/api/invoices/${created.id}/pdf`, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        if (!pdfRes.ok) {
+          const errData = await pdfRes.json().catch(() => ({}));
+          showError(errData.message || "Invoice created but PDF upload failed");
+        }
+      }
+
       setShowCreate(false);
       setNewDueDate("");
       setNewNotes("");
       setNewLineItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+      setNewPdfFile(null);
+      if (newPdfRef.current) newPdfRef.current.value = "";
       loadInvoices();
       success("Invoice created");
     } catch (err) {
@@ -145,7 +159,6 @@ export function InvoicesSection({
     }
   };
 
-  // Status transition
   const handleStatusChange = async (invoiceId: string, newStatus: string) => {
     try {
       await apiFetch(`/invoices/${invoiceId}`, {
@@ -159,7 +172,6 @@ export function InvoicesSection({
     }
   };
 
-  // Edit handlers
   const startEditing = (inv: InvoiceListItem) => {
     setEditingId(inv.id);
     setEditItems(
@@ -201,7 +213,6 @@ export function InvoicesSection({
     );
   };
 
-  // Delete
   const handleDelete = async (invoiceId: string) => {
     const ok = await confirm({
       title: "Delete Invoice",
@@ -219,12 +230,34 @@ export function InvoicesSection({
     }
   };
 
+  const handleUploadPdf = async (invoiceId: string, file: File) => {
+    setUploadingPdfFor(invoiceId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Upload failed");
+      }
+      loadInvoices();
+      success("PDF uploaded");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to upload PDF");
+    } finally {
+      setUploadingPdfFor(null);
+    }
+  };
+
   const handleDownloadPdf = async (invoiceId: string, invoiceNumber: string) => {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/invoices/${invoiceId}/pdf`,
-        { credentials: "include" },
-      );
+      const res = await fetch(`/api/invoices/${invoiceId}/pdf`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -263,7 +296,6 @@ export function InvoicesSection({
         )}
       </div>
 
-      {/* Stats line */}
       {invoices.length > 0 && (
         <p className="text-xs text-[var(--muted-foreground)] mb-3">
           {invoices.length} invoice{invoices.length !== 1 ? "s" : ""}
@@ -271,7 +303,6 @@ export function InvoicesSection({
         </p>
       )}
 
-      {/* Status filter */}
       <div className="mb-3">
         <select
           value={statusFilter}
@@ -286,7 +317,6 @@ export function InvoicesSection({
         </select>
       </div>
 
-      {/* Create modal */}
       {showCreate && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -327,7 +357,7 @@ export function InvoicesSection({
                       className="w-20 px-3 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
                     />
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--muted-foreground)]">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--muted-foreground)]">&euro;</span>
                       <input
                         type="number"
                         value={item.unitPrice / 100 || ""}
@@ -382,6 +412,35 @@ export function InvoicesSection({
               />
             </div>
 
+            <div>
+              <label className="text-sm text-[var(--muted-foreground)]">Attach PDF</label>
+              <div className="mt-1 flex items-center gap-3">
+                <label className="flex items-center gap-2 px-3 py-1.5 border border-[var(--border)] rounded-lg text-sm cursor-pointer hover:bg-[var(--muted)]">
+                  <Upload size={14} />
+                  {newPdfFile ? newPdfFile.name : "Choose PDF..."}
+                  <input
+                    ref={newPdfRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => setNewPdfFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {newPdfFile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewPdfFile(null);
+                      if (newPdfRef.current) newPdfRef.current.value = "";
+                    }}
+                    className="text-xs text-red-500 hover:underline"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowCreate(false)}
@@ -401,7 +460,6 @@ export function InvoicesSection({
         </div>
       )}
 
-      {/* Invoice list */}
       {loading ? (
         <div className="space-y-2">
           {[1, 2].map((i) => (
@@ -416,16 +474,17 @@ export function InvoicesSection({
             const isExpanded = expandedId === inv.id;
             const isDraft = inv.status === "draft";
             const isEditing = editingId === inv.id;
+            const hasPdf = !!inv.pdfFileKey;
 
             return (
               <div key={inv.id} className="border border-[var(--border)] rounded-lg">
-                {/* Row header */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : inv.id)}
                   className="flex items-center justify-between w-full p-3 text-left hover:bg-[var(--muted)] transition-colors rounded-lg"
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-medium">{inv.invoiceNumber}</span>
+                    {hasPdf && <FileText size={14} className="text-[var(--primary)]" />}
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-medium">{formatCurrency(total)}</span>
@@ -443,11 +502,9 @@ export function InvoicesSection({
                   </div>
                 </button>
 
-                {/* Expanded detail */}
                 {isExpanded && (
                   <div className="px-3 pb-3 space-y-3 border-t border-[var(--border)]">
-                    {/* Actions bar */}
-                    <div className="flex items-center gap-2 pt-3">
+                    <div className="flex items-center gap-2 pt-3 flex-wrap">
                       {isDraft && !isArchived && (
                         <button
                           onClick={() => handleStatusChange(inv.id, "sent")}
@@ -464,13 +521,32 @@ export function InvoicesSection({
                           Mark as Paid
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                        className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
-                      >
-                        <Download size={12} />
-                        PDF
-                      </button>
+                      {hasPdf && (
+                        <button
+                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                          className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline"
+                        >
+                          <Download size={12} />
+                          Download PDF
+                        </button>
+                      )}
+                      {!isArchived && (
+                        <label className="flex items-center gap-1 text-xs text-[var(--primary)] hover:underline cursor-pointer">
+                          <Upload size={12} />
+                          {uploadingPdfFor === inv.id ? "Uploading..." : hasPdf ? "Replace PDF" : "Upload PDF"}
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            disabled={uploadingPdfFor === inv.id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleUploadPdf(inv.id, file);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
                       {isDraft && !isArchived && !isEditing && (
                         <button
                           onClick={() => startEditing(inv)}
@@ -490,7 +566,6 @@ export function InvoicesSection({
                       )}
                     </div>
 
-                    {/* Edit mode */}
                     {isEditing && isDraft ? (
                       <div className="space-y-3">
                         <div>
@@ -520,7 +595,7 @@ export function InvoicesSection({
                                 className="w-20 px-3 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
                               />
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--muted-foreground)]">$</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--muted-foreground)]">&euro;</span>
                                 <input
                                   type="number"
                                   value={item.unitPrice / 100 || ""}
@@ -582,7 +657,6 @@ export function InvoicesSection({
                       </div>
                     ) : (
                       <>
-                        {/* Line items table */}
                         <div className="border border-[var(--border)] rounded-lg overflow-hidden">
                           <table className="w-full text-sm">
                             <thead>
