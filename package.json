@@ -21,7 +21,7 @@
     "clean": "turbo run clean",
     "setup": "bun run scripts/setup.ts"
   },
-  "packageManager": "npm@11.11.1",
+  "packageManager": "npm@10.8.2",
   "overrides": {
     "minimatch": ">=10.2.3",
     "serialize-javascript": ">=7.0.3",

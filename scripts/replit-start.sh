@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Disable Corepack so it does not interfere with npm
+corepack disable 2>/dev/null || true
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DB_DIR="$ROOT_DIR/packages/database"
 SHARED_DIR="$ROOT_DIR/packages/shared"
