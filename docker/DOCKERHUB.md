@@ -25,7 +25,7 @@ docker run -d \
   -v crettyard-db:/var/lib/postgresql/data \
   -v crettyard-uploads:/app/uploads \
   -e BETTER_AUTH_SECRET=$(openssl rand -base64 32) \
-  crettyard/client-portal:latest
+  joeyegberink/client-portal:latest
 ```
 
 Open `http://localhost:8080` and create your account.
@@ -35,7 +35,7 @@ Open `http://localhost:8080` and create your account.
 ```yaml
 services:
   crettyard:
-    image: crettyard/client-portal:latest
+    image: joeyegberink/client-portal:latest
     ports:
       - "8080:8080"
     environment:

@@ -1,6 +1,6 @@
 services:
   crettyard:
-    image: crettyard/client-portal:latest
+    image: joeyegberink/client-portal:latest
     container_name: crettyard-portal
     ports:
       # Web UI port — access the portal at http://localhost:8080

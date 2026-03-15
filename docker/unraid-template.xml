@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>CrettyardDigital</Name>
-  <Repository>crettyard/client-portal:latest</Repository>
-  <Registry>https://hub.docker.com/r/crettyard/client-portal</Registry>
+  <Repository>joeyegberink/client-portal:latest</Repository>
+  <Registry>https://hub.docker.com/r/joeyegberink/client-portal</Registry>
   <Network>bridge</Network>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/crettyard/client-portal/issues</Support>
+  <Support>https://github.com/jegberin/client-portal/issues</Support>
   <Overview>Crettyard Digital Client Portal — a self-hosted branded portal for managing projects, invoices, quotes, decisions, and file sharing with clients. Includes a built-in PostgreSQL database, Caddy reverse proxy, and support for Cloudflare R2 file storage.</Overview>
   <Category>Productivity: Tools:</Category>
   <WebUI>http://[IP]:[PORT:8080]</WebUI>
-  <Icon>https://raw.githubusercontent.com/crettyard/client-portal/main/apps/web/public/icon.png</Icon>
+  <Icon>https://raw.githubusercontent.com/jegberin/client-portal/main/apps/web/public/icon.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <DonateText/>

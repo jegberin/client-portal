@@ -6,7 +6,7 @@ on:
       - "v*"
 
 env:
-  IMAGE_NAME: crettyard/client-portal
+  IMAGE_NAME: joeyegberink/client-portal
 
 jobs:
   build-and-push:
