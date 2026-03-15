@@ -6,3 +6,6 @@ export { VerifyEmail } from "./templates/verify-email";
 export { ProjectUpdateEmail } from "./templates/project-update";
 export { TaskAssignedEmail } from "./templates/task-assigned";
 export { InvoiceSentEmail } from "./templates/invoice-sent";
+export { QuoteRespondedEmail } from "./templates/quote-responded";
+export { DecisionRespondedEmail } from "./templates/decision-responded";
+export { DecisionCreatedEmail } from "./templates/decision-created";

@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreateDecisionDto, UpdateDecisionDto, DecisionListQueryDto, RespondDecisionDto } from "./decisions.dto";
 import { paginationArgs, paginatedResponse } from "../common";
 
 @Injectable()
 export class DecisionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(dto: CreateDecisionDto, orgId: string) {
     const project = await this.prisma.project.findFirst({
@@ -18,7 +22,7 @@ export class DecisionsService {
       throw new BadRequestException("Multiple choice decisions require at least 2 options");
     }
 
-    return this.prisma.decision.create({
+    const created = await this.prisma.decision.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -31,6 +35,10 @@ export class DecisionsService {
       },
       include: { options: true, responses: { include: { user: { select: { id: true, name: true, email: true } } } } },
     });
+
+    this.notifications.notifyDecisionCreated(created.id, dto.projectId);
+
+    return created;
   }
 
   async findAll(orgId: string, query: DecisionListQueryDto) {
@@ -183,6 +191,8 @@ export class DecisionsService {
     });
     if (!assignment) throw new ForbiddenException("You are not assigned to this project");
 
+    let responsePreview: string | undefined;
+
     try {
       if (decision.type === "multiple_choice") {
         let choiceLabel: string | undefined;
@@ -199,6 +209,8 @@ export class DecisionsService {
 
         if (!choiceLabel) throw new BadRequestException("Please select an option");
 
+        responsePreview = choiceLabel;
+
         await this.prisma.decisionResponse.create({
           data: {
             decisionId: id,
@@ -211,6 +223,8 @@ export class DecisionsService {
         if (!responseText || !responseText.trim()) {
           throw new BadRequestException("Please provide a response");
         }
+
+        responsePreview = responseText;
 
         await this.prisma.decisionResponse.create({
           data: {
@@ -226,6 +240,8 @@ export class DecisionsService {
       }
       throw err;
     }
+
+    this.notifications.notifyDecisionResponded(id, userId, responsePreview);
 
     return this.prisma.decision.findFirst({
       where: { id },

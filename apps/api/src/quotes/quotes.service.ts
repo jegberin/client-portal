@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { CreateQuoteDto, UpdateQuoteDto, QuoteListQueryDto, RespondQuoteDto } from "./quotes.dto";
 import { paginationArgs, paginatedResponse } from "../common";
 
 @Injectable()
 export class QuotesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(dto: CreateQuoteDto, orgId: string) {
     const project = await this.prisma.project.findFirst({
@@ -145,7 +149,7 @@ export class QuotesService {
 
     const decision = dto.resolvedResponse;
     if (!decision) throw new BadRequestException("Please provide a response (accepted or declined)");
-    return this.prisma.quote.update({
+    const updated = await this.prisma.quote.update({
       where: { id },
       data: {
         status: decision,
@@ -154,5 +158,14 @@ export class QuotesService {
         responseNote: dto.note || null,
       },
     });
+
+    this.notifications.notifyQuoteResponded(
+      id,
+      userId,
+      decision as "accepted" | "declined",
+      dto.note,
+    );
+
+    return updated;
   }
 }
