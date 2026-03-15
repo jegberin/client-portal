@@ -9,7 +9,6 @@ RUN npm ci
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
 ARG NEXT_PUBLIC_API_URL=
 ARG NEXT_PUBLIC_BILLING_ENABLED=false

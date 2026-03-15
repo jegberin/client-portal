@@ -15,10 +15,6 @@ RUN npm ci
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
-COPY --from=deps /app/packages/email/node_modules ./packages/email/node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npm run build --workspace=packages/email
 RUN npm run build --workspace=apps/api
@@ -46,7 +42,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
-COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/packages/database ./packages/database
 COPY --from=build /app/packages/shared ./packages/shared
 COPY --from=build /app/packages/email ./packages/email

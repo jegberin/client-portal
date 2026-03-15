@@ -66,4 +66,6 @@
   <Config Name="POSTGRES_USER" Target="POSTGRES_USER" Default="crettyard" Mode="" Description="Username for the built-in PostgreSQL database." Type="Variable" Display="advanced" Required="false" Mask="false">crettyard</Config>
 
   <Config Name="POSTGRES_PASSWORD" Target="POSTGRES_PASSWORD" Default="crettyard" Mode="" Description="Password for the built-in PostgreSQL database." Type="Variable" Display="advanced" Required="false" Mask="true">crettyard</Config>
+
+  <Config Name="POSTGRES_DB" Target="POSTGRES_DB" Default="crettyard" Mode="" Description="Database name for the built-in PostgreSQL database." Type="Variable" Display="advanced" Required="false" Mask="false">crettyard</Config>
 </Container>

@@ -11,7 +11,6 @@ RUN npm ci
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 RUN npm run build --workspace=packages/email
@@ -22,7 +21,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
-COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/packages/database ./packages/database
 COPY --from=build /app/packages/shared ./packages/shared
 COPY --from=build /app/packages/email ./packages/email
