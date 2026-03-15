@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>CrettyardDigital</Name>
+  <Repository>crettyard/client-portal:latest</Repository>
+  <Registry>https://hub.docker.com/r/crettyard/client-portal</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/crettyard/client-portal/issues</Support>
+  <Overview>Crettyard Digital Client Portal — a self-hosted branded portal for managing projects, invoices, quotes, decisions, and file sharing with clients. Includes a built-in PostgreSQL database, Caddy reverse proxy, and support for Cloudflare R2 file storage.</Overview>
+  <Category>Productivity: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:8080]</WebUI>
+  <Icon>https://raw.githubusercontent.com/crettyard/client-portal/main/apps/web/public/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <DonateText/>
+  <DonateLink/>
+  <DonateImg/>
+
+  <Config Name="Web UI Port" Target="8080" Default="8080" Mode="tcp" Description="Port for the web interface." Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+
+  <Config Name="PostgreSQL Data" Target="/var/lib/postgresql/data" Default="/mnt/user/appdata/crettyard/db" Mode="rw" Description="Persistent storage for the built-in PostgreSQL database." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/crettyard/db</Config>
+
+  <Config Name="Uploads" Target="/app/uploads" Default="/mnt/user/appdata/crettyard/uploads" Mode="rw" Description="Persistent storage for uploaded files (used when STORAGE_PROVIDER is set to local)." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/crettyard/uploads</Config>
+
+  <Config Name="BETTER_AUTH_SECRET" Target="BETTER_AUTH_SECRET" Default="" Mode="" Description="Random string (minimum 32 characters) used to sign authentication tokens. Generate with: openssl rand -base64 32" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+
+  <Config Name="WEB_URL" Target="WEB_URL" Default="http://localhost:8080" Mode="" Description="The public URL where clients access the portal (e.g. https://clients.yourdomain.com). Used for email links." Type="Variable" Display="always" Required="false" Mask="false">http://localhost:8080</Config>
+
+  <Config Name="USE_BUILT_IN_DB" Target="USE_BUILT_IN_DB" Default="true" Mode="" Description="Set to false to use an external PostgreSQL database instead of the built-in one." Type="Variable" Display="always" Required="false" Mask="false">true</Config>
+
+  <Config Name="DATABASE_URL" Target="DATABASE_URL" Default="" Mode="" Description="External PostgreSQL connection string. Only required when USE_BUILT_IN_DB is false. Example: postgresql://user:password@host:5432/dbname" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="STORAGE_PROVIDER" Target="STORAGE_PROVIDER" Default="local" Mode="" Description="File storage backend: local, s3, minio, or r2." Type="Variable" Display="always" Required="false" Mask="false">local</Config>
+
+  <Config Name="R2_ACCOUNT_ID" Target="R2_ACCOUNT_ID" Default="" Mode="" Description="Cloudflare R2 account ID. Required when STORAGE_PROVIDER is r2." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+
+  <Config Name="R2_ACCESS_KEY" Target="R2_ACCESS_KEY" Default="" Mode="" Description="Cloudflare R2 access key. Required when STORAGE_PROVIDER is r2." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="R2_SECRET_KEY" Target="R2_SECRET_KEY" Default="" Mode="" Description="Cloudflare R2 secret key. Required when STORAGE_PROVIDER is r2." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="R2_BUCKET" Target="R2_BUCKET" Default="" Mode="" Description="Cloudflare R2 bucket name. Required when STORAGE_PROVIDER is r2." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+
+  <Config Name="RESEND_API_KEY" Target="RESEND_API_KEY" Default="" Mode="" Description="Resend API key for sending transactional emails (invitations, notifications)." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="EMAIL_FROM" Target="EMAIL_FROM" Default="noreply@yourdomain.com" Mode="" Description="Sender email address for outgoing emails." Type="Variable" Display="always" Required="false" Mask="false">noreply@yourdomain.com</Config>
+
+  <Config Name="MAX_FILE_SIZE_MB" Target="MAX_FILE_SIZE_MB" Default="50" Mode="" Description="Maximum file upload size in megabytes." Type="Variable" Display="advanced" Required="false" Mask="false">50</Config>
+
+  <Config Name="SKIP_DB_PUSH" Target="SKIP_DB_PUSH" Default="false" Mode="" Description="Skip automatic database schema sync on startup. Set to true if using a pooled database connection." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+
+  <Config Name="POSTGRES_USER" Target="POSTGRES_USER" Default="crettyard" Mode="" Description="Username for the built-in PostgreSQL database." Type="Variable" Display="advanced" Required="false" Mask="false">crettyard</Config>
+
+  <Config Name="POSTGRES_PASSWORD" Target="POSTGRES_PASSWORD" Default="crettyard" Mode="" Description="Password for the built-in PostgreSQL database." Type="Variable" Display="advanced" Required="false" Mask="true">crettyard</Config>
+</Container>

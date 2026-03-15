@@ -2,29 +2,40 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-atrium}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atrium}
-      POSTGRES_DB: ${POSTGRES_DB:-atrium}
+      POSTGRES_USER: ${POSTGRES_USER:-crettyard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crettyard}
+      POSTGRES_DB: ${POSTGRES_DB:-crettyard}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atrium}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crettyard}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  atrium:
-    image: vibralabs/atrium:latest
+  app:
+    image: crettyard/client-portal:latest
     ports:
       - "8080:8080"
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-atrium}:${POSTGRES_PASSWORD:-atrium}@postgres:5432/${POSTGRES_DB:-atrium}"
+      USE_BUILT_IN_DB: "false"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-crettyard}:${POSTGRES_PASSWORD:-crettyard}@postgres:5432/${POSTGRES_DB:-crettyard}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:-change-me-to-a-random-string-at-least-32-chars}"
+      WEB_URL: "${WEB_URL:-http://localhost:8080}"
+      STORAGE_PROVIDER: "${STORAGE_PROVIDER:-local}"
+      R2_ACCOUNT_ID: "${R2_ACCOUNT_ID:-}"
+      R2_ACCESS_KEY: "${R2_ACCESS_KEY:-}"
+      R2_SECRET_KEY: "${R2_SECRET_KEY:-}"
+      R2_BUCKET: "${R2_BUCKET:-}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      EMAIL_FROM: "${EMAIL_FROM:-noreply@yourdomain.com}"
+      MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-50}"
     volumes:
       - uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata:
