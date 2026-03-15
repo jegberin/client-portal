@@ -45,12 +45,7 @@ fi
 
 echo "Starting API server on :3001..."
 cd /app/apps/api
-PORT=3001 node -e "
-process.on('uncaughtException', (e) => { console.error('API UNCAUGHT:', e.stack || e); process.exit(1); });
-process.on('unhandledRejection', (e) => { console.error('API UNHANDLED REJECTION:', e?.stack || e); process.exit(1); });
-try { require('./dist/main'); }
-catch(e) { console.error('API FATAL:', e.stack || e); process.exit(1); }
-" &
+PORT=3001 node dist/main &
 API_PID=$!
 
 echo "Starting Web server on :3000..."

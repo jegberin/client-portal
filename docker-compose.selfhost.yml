@@ -3,23 +3,58 @@ services:
     image: crettyard/client-portal:latest
     container_name: crettyard-portal
     ports:
+      # Web UI port — access the portal at http://localhost:8080
       - "8080:8080"
     environment:
+      # --- Required ---
+      # Random string (min 32 chars) for signing auth tokens
+      # Generate with: openssl rand -base64 32
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET}"
-      WEB_URL: "${WEB_URL:-http://localhost:8080}"
 
+      # --- Database ---
+      # Set to true to use the built-in PostgreSQL (default, no extra container needed)
+      # Set to false and provide DATABASE_URL to use an external database
+      USE_BUILT_IN_DB: "${USE_BUILT_IN_DB:-true}"
+      # External PostgreSQL connection string (only used when USE_BUILT_IN_DB=false)
+      # Example: postgresql://user:password@host:5432/dbname
+      DATABASE_URL: "${DATABASE_URL:-}"
+
+      # --- Public URLs ---
+      # The public URL where clients access the portal (used in email links)
+      WEB_URL: "${WEB_URL:-http://localhost:8080}"
+      # API URL for the frontend — leave empty when API and web are on the same domain
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-}"
+
+      # --- File storage ---
+      # Storage backend: local, s3, minio, or r2
       STORAGE_PROVIDER: "${STORAGE_PROVIDER:-r2}"
+      # Cloudflare R2 credentials (required when STORAGE_PROVIDER=r2)
       R2_ACCOUNT_ID: "${R2_ACCOUNT_ID:-}"
       R2_ACCESS_KEY: "${R2_ACCESS_KEY:-}"
       R2_SECRET_KEY: "${R2_SECRET_KEY:-}"
       R2_BUCKET: "${R2_BUCKET:-}"
+      # S3/MinIO credentials (required when STORAGE_PROVIDER=s3 or minio)
+      S3_ENDPOINT: "${S3_ENDPOINT:-}"
+      S3_REGION: "${S3_REGION:-us-east-1}"
+      S3_BUCKET: "${S3_BUCKET:-}"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:-}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:-}"
 
+      # --- Email ---
+      # Resend API key for sending transactional emails
       RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      # Sender address for outgoing emails
       EMAIL_FROM: "${EMAIL_FROM:-noreply@yourdomain.com}"
 
+      # --- Advanced ---
+      # Maximum file upload size in megabytes
       MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-50}"
+      # Skip automatic schema sync on startup (use for pooled DB connections)
+      SKIP_DB_PUSH: "${SKIP_DB_PUSH:-false}"
     volumes:
+      # Built-in PostgreSQL data (only used when USE_BUILT_IN_DB=true)
       - db-data:/var/lib/postgresql/data
+      # Uploaded files when using local storage
       - uploads:/app/uploads
     restart: unless-stopped
 

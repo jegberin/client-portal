@@ -16,21 +16,55 @@ services:
   app:
     image: crettyard/client-portal:latest
     ports:
+      # Web UI port — access the portal at http://localhost:8080
       - "8080:8080"
     environment:
-      USE_BUILT_IN_DB: "false"
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-crettyard}:${POSTGRES_PASSWORD:-crettyard}@postgres:5432/${POSTGRES_DB:-crettyard}"
+      # --- Required ---
+      # Random string (min 32 chars) for signing auth tokens
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:-change-me-to-a-random-string-at-least-32-chars}"
+
+      # --- Database ---
+      # Set to false to use the external postgres service defined above
+      USE_BUILT_IN_DB: "false"
+      # Connection string for the external postgres service
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-crettyard}:${POSTGRES_PASSWORD:-crettyard}@postgres:5432/${POSTGRES_DB:-crettyard}"
+
+      # --- Public URLs ---
+      # The public URL where clients access the portal (used in email links)
       WEB_URL: "${WEB_URL:-http://localhost:8080}"
+      # API URL for the frontend — leave empty when API and web are on the same domain
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-}"
+      # Set to true to enable Stripe billing features
+      NEXT_PUBLIC_BILLING_ENABLED: "${NEXT_PUBLIC_BILLING_ENABLED:-false}"
+
+      # --- File storage ---
+      # Storage backend: local, s3, minio, or r2
       STORAGE_PROVIDER: "${STORAGE_PROVIDER:-local}"
+      # Cloudflare R2 credentials (required when STORAGE_PROVIDER=r2)
       R2_ACCOUNT_ID: "${R2_ACCOUNT_ID:-}"
       R2_ACCESS_KEY: "${R2_ACCESS_KEY:-}"
       R2_SECRET_KEY: "${R2_SECRET_KEY:-}"
       R2_BUCKET: "${R2_BUCKET:-}"
+      # S3/MinIO credentials (required when STORAGE_PROVIDER=s3 or minio)
+      S3_ENDPOINT: "${S3_ENDPOINT:-}"
+      S3_REGION: "${S3_REGION:-us-east-1}"
+      S3_BUCKET: "${S3_BUCKET:-}"
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY:-}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY:-}"
+
+      # --- Email ---
+      # Resend API key for sending transactional emails
       RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      # Sender address for outgoing emails
       EMAIL_FROM: "${EMAIL_FROM:-noreply@yourdomain.com}"
+
+      # --- Advanced ---
+      # Maximum file upload size in megabytes
       MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-50}"
+      # Skip automatic schema sync on startup (use for pooled DB connections)
+      SKIP_DB_PUSH: "${SKIP_DB_PUSH:-false}"
     volumes:
+      # Uploaded files when using local storage
       - uploads:/app/uploads
     depends_on:
       postgres:
