@@ -41,6 +41,20 @@
 
   <Config Name="R2_BUCKET" Target="R2_BUCKET" Default="" Mode="" Description="Cloudflare R2 bucket name. Required when STORAGE_PROVIDER is r2." Type="Variable" Display="always" Required="false" Mask="false"></Config>
 
+  <Config Name="S3_ENDPOINT" Target="S3_ENDPOINT" Default="" Mode="" Description="S3-compatible endpoint URL. Required when STORAGE_PROVIDER is s3 or minio." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+
+  <Config Name="S3_REGION" Target="S3_REGION" Default="us-east-1" Mode="" Description="S3 region." Type="Variable" Display="advanced" Required="false" Mask="false">us-east-1</Config>
+
+  <Config Name="S3_BUCKET" Target="S3_BUCKET" Default="" Mode="" Description="S3 bucket name. Required when STORAGE_PROVIDER is s3 or minio." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+
+  <Config Name="S3_ACCESS_KEY" Target="S3_ACCESS_KEY" Default="" Mode="" Description="S3 access key. Required when STORAGE_PROVIDER is s3 or minio." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="S3_SECRET_KEY" Target="S3_SECRET_KEY" Default="" Mode="" Description="S3 secret key. Required when STORAGE_PROVIDER is s3 or minio." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+
+  <Config Name="NEXT_PUBLIC_API_URL" Target="NEXT_PUBLIC_API_URL" Default="" Mode="" Description="API URL for the frontend. Leave empty when API and web are served on the same domain (default)." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+
+  <Config Name="NEXT_PUBLIC_BILLING_ENABLED" Target="NEXT_PUBLIC_BILLING_ENABLED" Default="false" Mode="" Description="Set to true to enable Stripe billing features." Type="Variable" Display="advanced" Required="false" Mask="false">false</Config>
+
   <Config Name="RESEND_API_KEY" Target="RESEND_API_KEY" Default="" Mode="" Description="Resend API key for sending transactional emails (invitations, notifications)." Type="Variable" Display="always" Required="false" Mask="true"></Config>
 
   <Config Name="EMAIL_FROM" Target="EMAIL_FROM" Default="noreply@yourdomain.com" Mode="" Description="Sender email address for outgoing emails." Type="Variable" Display="always" Required="false" Mask="false">noreply@yourdomain.com</Config>
